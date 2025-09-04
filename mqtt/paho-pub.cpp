@@ -26,38 +26,41 @@ int main() {
 
     try {
         client.connect(connOpts)->wait();
+        const std::string topic_nbirth("spBv1.0/UCL-SEE-A/NBIRTH/TLab/VentSensor1");
+        json nbirth_payload;
+        std::time_t timenow = std::time(nullptr);
+        nbirth_payload["timestamp"] = timenow;
+        nbirth_payload["metrics"]["name"] = "temperature";
+        nbirth_payload["metrics"]["timestamp"] = timenow; // function to do
+        nbirth_payload["metrics"]["datatype"] = "Float";
+        nbirth_payload["metrics"]["value"] = 25.5; // function do do
+        std::string publish_payload = nbirth_payload.dump(4);
+        client.publish(topic_nbirth, publish_payload.data(), publish_payload.size(), 0, false);
+        
         std::cout << "Connected to the MQTT broker!" << std::endl;
         
         // Follow topic structure of Sparkplug B version 1.0
-        const std::string topic("spBv1.0/officeb/DDATA/ventilationchamber2/olimextemp");
-        // const std::string payload("Hello, MQTT!");
-        // Create JSON payload written in raw JSON
-        json jsonpayload = json::parse(R"(
-                                   {
-                                      "timestamp": 1486144502122,
-                                      "metrics": [{
-                                      "name": "temperature",
-                                      "alias": 1,
-                                      "timestamp": 1479123452194,
-                                      "dataType": "integer",
-                                      "value": "25.5"
-                                   }],
-                                      "seq": 2
-                                   }
-                                   )");
-        // Convert JSON payload to string
-        std::string payload = jsonpayload.dump(4);
-        client.publish(topic, payload.data(), payload.size(), 0, false);
-        std::cout << "Message published!" << std::endl;
+        const std::string topic_data("spBv1.0/UCL-SEE-A/DDATA/TLab/VentSensor1");
+
         // You can also construct the JSON object sequentially
-        json altpayload; // empty JSON structure 
-        std::time_t timenow = std::time(nullptr);
-        altpayload["timestamp"] = timenow;
-        altpayload["metrics"]["timestamp"] = sampleTime(); // function to do
-        altpayload["metrics"]["name"] = "temperature";
-        altpayload["value"] = measureTemp(); // function do do
-        std::string publish_payload = altpayload.dump(4);
-        client.publish(topic, publish_payload.data(), publish_payload.size(), 0, false);
+        json dData_payload; // empty JSON structure 
+        dData_payload["timestamp"] = timenow;
+        dData_payload["metrics"]["name"] = "temperature";
+        dData_payload["metrics"]["timestamp"] = timenow; // function to do
+        dData_payload["metrics"]["datatype"] = "Float";
+        dData_payload["metrics"]["value"] = 25.5; // function do do
+        std::string publish_payload_data = dData_payload.dump(4);
+        client.publish(topic_data, publish_payload_data.data(), publish_payload_data.size(), 0, false);
+
+        const std::string topic_ndeath("spBv1.0/UCL-SEE-A/NDEATH/TLab/VentSensor1");
+        json ndeath_payload;
+        ndeath_payload["timestamp"] = timenow;
+        ndeath_payload["metrics"]["name"] = "temperature";
+        ndeath_payload["metrics"]["timestamp"] = timenow; // function to do
+        ndeath_payload["metrics"]["datatype"] = "Float";
+        ndeath_payload["metrics"]["value"] = 25.5; // function do do
+        std::string publish_payload_ndeath = ndeath_payload.dump(4);
+        client.publish(topic_ndeath, publish_payload_ndeath.data(), publish_payload_ndeath.size(), 0, false);
         client.disconnect()->wait();
     } catch (const mqtt::exception& exc) {
         std::cerr << "Error: " << exc.what() << std::endl;

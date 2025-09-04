@@ -52,8 +52,12 @@ int main()
         // std::cout << "Connected to the MQTT broker!" << std::endl; - no cout when logging
         spdlog::info("Connected to the MQTT broker!");
         
-        const std::string topic("esp32/ds/temperature");
-        client.subscribe(topic, 0);
+        const std::string topic_nbirth("spBv1.0/UCL-SEE-A/NBIRTH/TLab/VentSensor1");
+        client.subscribe(topic_nbirth, 0);
+        const std::string topic_data("spBv1.0/UCL-SEE-A/DDATA/TLab/VentSensor1");
+        client.subscribe(topic_data, 0);
+        const std::string topic_death("spBv1.0/UCL-SEE-A/NDEATH/TLab/VentSensor1");
+        client.subscribe(topic_death, 0);
 
         // Wait for messages
         std::this_thread::sleep_for(std::chrono::seconds(30));
