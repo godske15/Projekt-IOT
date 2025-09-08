@@ -49,12 +49,12 @@ int main() {
         nbirth_payload["metrics"]["name"] = "Inputs/CO2 levels";
         nbirth_payload["metrics"]["timestamp"] = timenow; // function to do
         nbirth_payload["metrics"]["datatype"] = "Float";
-        nbirth_payload["metrics"]["value"] = 25.5; // function do do
+        nbirth_payload["metrics"]["value"] = 500; // function do do
 
         nbirth_payload["metrics"]["name"] = "Inputs/Fan speed";
         nbirth_payload["metrics"]["timestamp"] = timenow; // function to do
         nbirth_payload["metrics"]["datatype"] = "Float";
-        nbirth_payload["metrics"]["value"] = 25.5; // function do do
+        nbirth_payload["metrics"]["value"] = 30; // function do do
 
         // Check with switch case what the status of HVAC is
         nbirth_payload["metrics"]["name"] = "Inputs/Status";
@@ -67,7 +67,7 @@ int main() {
         nbirth_payload["metrics"]["timestamp"] = timenow; // function to do
         nbirth_payload["metrics"]["datatype"] = "INT63";
         nbirth_payload["metrics"]["value"] = 0; // function do do
-        
+
         std::string publish_payload = nbirth_payload.dump(4);
         client.publish(topic_nbirth, publish_payload.data(), publish_payload.size(), 0, false);
         
