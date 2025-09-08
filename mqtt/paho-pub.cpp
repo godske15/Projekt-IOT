@@ -1,5 +1,3 @@
-// https://cppscripts.com/paho-mqtt-cpp-cmake
-
 #include <iostream>
 #include <nlohmann/json_fwd.hpp>
 #include <string>
@@ -12,89 +10,97 @@ using json = nlohmann::json;
 const std::string SERVER_ADDRESS("tcp://localhost:1883");
 const std::string CLIENT_ID("ExampleClient");
 
-/**
- * @brief 
- *
- * @return 
- */
+// Global sequence counter
+static uint64_t bdSeq = 0;
+
+uint64_t getNextSequence() {
+    return ++bdSeq;
+}
+
 int main() {
-  
-  mqtt::async_client client(SERVER_ADDRESS, CLIENT_ID);
+    mqtt::async_client client(SERVER_ADDRESS, CLIENT_ID);
 
     mqtt::connect_options connOpts;
     connOpts.set_clean_session(true);
 
     try {
         client.connect(connOpts)->wait();
+        
         const std::string topic_nbirth("spBv1.0/UCL-SEE-A/NBIRTH/TLab");
         json nbirth_payload;
         std::time_t timenow = std::time(nullptr);
-        nbirth_payload["timestamp"] = timenow;
+        
+        nbirth_payload["timestamp"] = timenow * 1000;
+        nbirth_payload["seq"] = getNextSequence();
 
-        nbirth_payload["metrics"]["name"] = "bdSeq";
-        nbirth_payload["metrics"]["timestamp"] = timenow; // function to do
-        nbirth_payload["metrics"]["datatype"] = "INT64";
-        nbirth_payload["metrics"]["value"] = 0; // function do do
+        // Brug individuelle indices til metrics array
+        nbirth_payload["metrics"][0]["name"] = "bdSeq";
+        nbirth_payload["metrics"][0]["timestamp"] = timenow * 1000;
+        nbirth_payload["metrics"][0]["dataType"] = "UInt64";
+        nbirth_payload["metrics"][0]["value"] = bdSeq;
 
-        nbirth_payload["metrics"]["name"] = "Properties/Hardware";
-        nbirth_payload["metrics"]["timestamp"] = timenow; // function to do
-        nbirth_payload["metrics"]["datatype"] = "String";
-        nbirth_payload["metrics"]["value"] = "ESP32-POE"; // function do do
+        nbirth_payload["metrics"][1]["name"] = "Properties/Hardware";
+        nbirth_payload["metrics"][1]["timestamp"] = timenow * 1000;
+        nbirth_payload["metrics"][1]["dataType"] = "String";
+        nbirth_payload["metrics"][1]["value"] = "ESP32-POE";
 
-        nbirth_payload["metrics"]["name"] = "Inputs/Temperature";
-        nbirth_payload["metrics"]["timestamp"] = timenow; // function to do
-        nbirth_payload["metrics"]["datatype"] = "Float";
-        nbirth_payload["metrics"]["value"] = 25.5; // function do do
+        nbirth_payload["metrics"][2]["name"] = "Inputs/Temperature";
+        nbirth_payload["metrics"][2]["timestamp"] = timenow * 1000;
+        nbirth_payload["metrics"][2]["dataType"] = "Float";
+        nbirth_payload["metrics"][2]["value"] = 25.5;
 
-        nbirth_payload["metrics"]["name"] = "Inputs/CO2 levels";
-        nbirth_payload["metrics"]["timestamp"] = timenow; // function to do
-        nbirth_payload["metrics"]["datatype"] = "Float";
-        nbirth_payload["metrics"]["value"] = 500; // function do do
+        nbirth_payload["metrics"][3]["name"] = "Inputs/CO2_levels";
+        nbirth_payload["metrics"][3]["timestamp"] = timenow * 1000;
+        nbirth_payload["metrics"][3]["dataType"] = "Float";
+        nbirth_payload["metrics"][3]["value"] = 500.0;
 
-        nbirth_payload["metrics"]["name"] = "Inputs/Fan speed";
-        nbirth_payload["metrics"]["timestamp"] = timenow; // function to do
-        nbirth_payload["metrics"]["datatype"] = "Float";
-        nbirth_payload["metrics"]["value"] = 30; // function do do
+        nbirth_payload["metrics"][4]["name"] = "Inputs/Fan_speed";
+        nbirth_payload["metrics"][4]["timestamp"] = timenow * 1000;
+        nbirth_payload["metrics"][4]["dataType"] = "Float";
+        nbirth_payload["metrics"][4]["value"] = 30.0;
 
-        // Check with switch case what the status of HVAC is
-        nbirth_payload["metrics"]["name"] = "Inputs/Status";
-        nbirth_payload["metrics"]["timestamp"] = timenow; // function to do
-        nbirth_payload["metrics"]["datatype"] = "INT64";
-        nbirth_payload["metrics"]["value"] = 0; // function do do
+        nbirth_payload["metrics"][5]["name"] = "Inputs/Status";
+        nbirth_payload["metrics"][5]["timestamp"] = timenow * 1000;
+        nbirth_payload["metrics"][5]["dataType"] = "UInt64";
+        nbirth_payload["metrics"][5]["value"] = 0;
 
-        // Check with switch case what the alarm from HVAC is
-        nbirth_payload["metrics"]["name"] = "Inputs/Alarms";
-        nbirth_payload["metrics"]["timestamp"] = timenow; // function to do
-        nbirth_payload["metrics"]["datatype"] = "INT63";
-        nbirth_payload["metrics"]["value"] = 0; // function do do
+        nbirth_payload["metrics"][6]["name"] = "Inputs/Alarms";
+        nbirth_payload["metrics"][6]["timestamp"] = timenow * 1000;
+        nbirth_payload["metrics"][6]["dataType"] = "UInt64";
+        nbirth_payload["metrics"][6]["value"] = 0;
 
         std::string publish_payload = nbirth_payload.dump(4);
         client.publish(topic_nbirth, publish_payload.data(), publish_payload.size(), 0, false);
         
-        std::cout << "Connected to the MQTT broker!" << std::endl;
+        std::cout << "NBIRTH sent with sequence: " << bdSeq << std::endl;
         
-        // Follow topic structure of Sparkplug B version 1.0
+        // DDATA besked med samme tilgang
         const std::string topic_data("spBv1.0/UCL-SEE-A/DDATA/TLab/VentSensor1");
-
-        // You can also construct the JSON object sequentially
-        json dData_payload; // empty JSON structure 
-        dData_payload["timestamp"] = timenow;
-        dData_payload["metrics"]["name"] = "temperature";
-        dData_payload["metrics"]["timestamp"] = timenow; // function to do
-        dData_payload["metrics"]["datatype"] = "Float";
-        dData_payload["metrics"]["value"] = 25.5; // function do do
+        json dData_payload;
+        
+        dData_payload["timestamp"] = timenow * 1000;
+        dData_payload["seq"] = getNextSequence();
+        
+        dData_payload["metrics"][0]["name"] = "temperature";
+        dData_payload["metrics"][0]["timestamp"] = timenow * 1000;
+        dData_payload["metrics"][0]["dataType"] = "Float";
+        dData_payload["metrics"][0]["value"] = 26.2;
+        
         std::string publish_payload_data = dData_payload.dump(4);
         client.publish(topic_data, publish_payload_data.data(), publish_payload_data.size(), 0, false);
+        
+        std::cout << "DDATA sent with sequence: " << bdSeq << std::endl;
 
-        // NDEATH only need sequence and timestamp
-        // Sequence will be part of NBIRTH last will message bdSeq
+        // NDEATH
         const std::string topic_ndeath("spBv1.0/UCL-SEE-A/NDEATH/TLab");
         json ndeath_payload;
-        ndeath_payload["seq"] = seq;
-        ndeath_payload["timestamp"] = timenow;
+        ndeath_payload["seq"] = bdSeq;
+        ndeath_payload["timestamp"] = timenow * 1000;
+        
         std::string publish_payload_ndeath = ndeath_payload.dump(4);
-        client.publish(topic_ndeath, publish_payload_ndeath.data(), publish_payload_ndeath.size(), 0, false);
+        
         client.disconnect()->wait();
+        
     } catch (const mqtt::exception& exc) {
         std::cerr << "Error: " << exc.what() << std::endl;
     }
