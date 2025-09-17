@@ -1,0 +1,10 @@
+[2025-09-17 10:37:00.814] [access] [info] MQTT Connection attempt - Server: tcp://localhost:1883, Client: ExampleClient
+[2025-09-17 10:37:00.926] [access] [info] MQTT Connected successfully - Server: tcp://localhost:1883, Client: ExampleClient
+[2025-09-17 10:37:00.926] [sparkplug] [info] Sparkplug client online - ID: ExampleClient
+[2025-09-17 10:37:00.926] [sparkplug] [info] NBIRTH published - Topic: spBv1.0/UCL-SEE-A/NBIRTH/TLab, Sequence: 1
+[2025-09-17 10:37:00.926] [access] [info] Message published successfully - Topic: spBv1.0/UCL-SEE-A/NBIRTH/TLab, Size: 1999 bytes
+[2025-09-17 10:37:00.926] [access] [info] DDATA published - Topic: spBv1.0/UCL-SEE-A/DDATA/TLab/VentSensor1, Sequence: 2
+[2025-09-17 10:37:00.926] [access] [info] Message published successfully - Topic: spBv1.0/UCL-SEE-A/DDATA/TLab/VentSensor1, Size: 220 bytes
+[2025-09-17 10:37:00.926] [sparkplug] [warning] NDEATH published - Topic: spBv1.0/UCL-SEE-A/NDEATH/TLab, Node: TLab, Sequence: 2
+[2025-09-17 10:37:00.927] [access] [info] MQTT Client disconnected - ID: ExampleClient
+[2025-09-17 10:37:00.927] [sparkplug] [info] Sparkplug client offline - ID: ExampleClient

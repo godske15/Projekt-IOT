@@ -12,8 +12,10 @@
 #include <spdlog/sinks/syslog_sink.h>
 #include <chrono>
 #include <unordered_map>
+#include <unordered_set>
 #include <atomic>
 #include <thread>
+#include <algorithm>
 
 using json = nlohmann::json;
 
@@ -108,8 +110,19 @@ public:
                 std::string metric_name = metric.value("name", "");
                 if (metric_name.find("Emergency_stop") != std::string::npos ||
                     metric_name.find("Reboot") != std::string::npos) {
+                    // Håndter forskellige value typer
+                    std::string value_str;
+                    if (metric["value"].is_boolean()) {
+                        value_str = metric["value"].get<bool>() ? "true" : "false";
+                    } else if (metric["value"].is_string()) {
+                        value_str = metric["value"].get<std::string>();
+                    } else if (metric["value"].is_number()) {
+                        value_str = std::to_string(metric["value"].get<double>());
+                    } else {
+                        value_str = "unknown_type";
+                    }
                     security_logger->info("Control metric in NBIRTH - Node: {}, Metric: {}, Value: {}", 
-                                         node_id, metric_name, metric.value("value", ""));
+                                         node_id, metric_name, value_str);
                 }
             }
         }
@@ -122,11 +135,17 @@ public:
         if (payload.contains("metrics")) {
             for (const auto& metric : payload["metrics"]) {
                 std::string metric_name = metric.value("name", "");
-                auto value = metric.value("value", 0.0);
                 
-                // Log unormal værdier
-                if (metric_name == "temperature" && (value < -10.0 || value > 50.0)) {
-                    security_logger->warn("Abnormal temperature reading - Topic: {}, Value: {}", topic, value);
+                // Håndter forskellige value typer for temperatur check
+                if (metric_name == "temperature" && metric.contains("value")) {
+                    double value = 0.0;
+                    if (metric["value"].is_number()) {
+                        value = metric["value"].get<double>();
+                        
+                        if (value < -10.0 || value > 50.0) {
+                            security_logger->warn("Abnormal temperature reading - Topic: {}, Value: {}", topic, value);
+                        }
+                    }
                 }
             }
         }

@@ -1,0 +1,3 @@
+[2025-09-17 10:37:00.926] [security] [info] Control metric in NBIRTH - Node: TLab, Metric: Node Control/Reboot, Value: false
+[2025-09-17 10:37:00.926] [security] [info] Control metric in NBIRTH - Node: TLab, Metric: Node Control/Emergency_stop, Value: false
+[2025-09-17 10:37:00.926] [security] [error] Short node uptime before death - Node: TLab, Uptime: 0 minutes
