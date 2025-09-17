@@ -1,0 +1,8 @@
+[2025-09-17 10:50:32.062] [access] [info] Monitoring topics for security events
+[2025-09-17 10:50:32.175] [access] [info] Subscriber connected to broker - Server: tcp://localhost:1883, Client: ExampleSubscriber
+[2025-09-17 10:50:32.175] [access] [info] Subscribed to security monitoring topic: spBv1.0/UCL-SEE-A/NBIRTH/TLab
+[2025-09-17 10:50:32.175] [access] [info] Subscribed to security monitoring topic: spBv1.0/UCL-SEE-A/DDATA/TLab/VentSensor1
+[2025-09-17 10:50:32.175] [access] [info] Subscribed to security monitoring topic: spBv1.0/UCL-SEE-A/NDEATH/TLab
+[2025-09-17 10:50:34.458] [access] [info] Hardware registered - Node: TLab, Hardware: ESP32-POE
+[2025-09-17 10:50:34.458] [access] [info] DDATA message received - Topic: spBv1.0/UCL-SEE-A/DDATA/TLab/VentSensor1
+[2025-09-17 10:51:02.176] [access] [info] Subscriber disconnected from broker

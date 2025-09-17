@@ -1,0 +1,3 @@
+[2025-09-17 10:50:34.457] [security] [info] Control metric in NBIRTH - Node: TLab, Metric: Node Control/Rebirth, Value: false
+[2025-09-17 10:50:34.458] [security] [info] Control metric in NBIRTH - Node: TLab, Metric: Node Control/Reboot, Value: false
+[2025-09-17 10:50:34.458] [security] [info] Control metric in NBIRTH - Node: TLab, Metric: Node Control/Emergency_stop, Value: false
