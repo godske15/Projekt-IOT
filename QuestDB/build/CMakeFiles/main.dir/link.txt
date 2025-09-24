@@ -1,0 +1,1 @@
+/usr/bin/c++ -O3 -DNDEBUG CMakeFiles/main.dir/main.cpp.o -o main  deps/c-questdb-client/libquestdb_client.a -lgcc_s -lutil -lrt -lpthread -lm -ldl -lc 

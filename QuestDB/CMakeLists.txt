@@ -1,0 +1,12 @@
+##CMakeLists.txt
+cmake_minimum_required(VERSION 3.15.0)
+project(your_project_name VERSION 1.0.0)
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+set(CMAKE_C_EXTENSIONS OFF)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+add_subdirectory( deps/c-questdb-client EXCLUDE_FROM_ALL)
+add_executable( main main.cpp)
+target_link_libraries( main questdb_client)

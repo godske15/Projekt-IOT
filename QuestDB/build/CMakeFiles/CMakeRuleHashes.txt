@@ -1,0 +1,3 @@
+# Hashes of file build rules.
+47f6dc2c5b10311e50f8e3d60a0f441f deps/c-questdb-client/CMakeFiles/_cargo-build_questdb_client
+a3dade8bfc04f1e27fea5ae81da84f3b deps/c-questdb-client/CMakeFiles/cargo-clean_questdb_client
