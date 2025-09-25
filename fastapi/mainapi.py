@@ -1,6 +1,7 @@
 import asyncio
 import os
 import time 
+from datetime import datetime, timedelta
 
 import asyncpg
 
@@ -8,7 +9,7 @@ from typing import Union
 from fastapi import FastAPI
 
 
-os.environ['TZ'] = 'ETC'
+os.environ['TZ'] = 'UTC'
 time.tzset()
 
 app = FastAPI()
@@ -45,25 +46,26 @@ async def query_with_asyncpg():
         password='quest',
         database='qdb'
     )
-    '''
+
     # Fetch multiple rows
     rows = await conn.fetch("""
                             SELECT *
                             FROM cpp_trades
-                            WHERE ts >= $1
-                            ORDER BY ts DESC LIMIT 10
+                            WHERE timestamp >= $1
+                            ORDER BY timestamp DESC LIMIT 10
                             """, datetime.now() - timedelta(days=1))
 
     print(f"Fetched {len(rows)} rows")
     for row in rows:
-        print(f"Timestamp: {row['ts']}, Symbol: {row['symbol']}, Price: {row['price']}")
-    ''' 
+        print(f"Timestamp: {row['timestamp']}, Symbol: {row['symbol']}, Price: {row['price']}")
+        return {"Row name": row['symbol'], "Price": row['price']}
+
     # Fetch a single row
     single_row = await conn.fetchrow("""
                                      SELECT *
                                      FROM cpp_trades LIMIT -1
                                      """)
-
+ 
 #if single_row:
 #       print(f"Latest trade: {single_row['symbol']} at {single_row['price']}")
 
