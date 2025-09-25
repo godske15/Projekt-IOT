@@ -8,7 +8,7 @@ from typing import Union
 from fastapi import FastAPI
 
 
-os.environ['TZ'] = 'UTC'
+os.environ['TZ'] = 'ETC'
 time.tzset()
 
 app = FastAPI()
