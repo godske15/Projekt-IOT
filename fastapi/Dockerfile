@@ -4,7 +4,9 @@ pip install asyncpg
 pip install fastapi[standard]
 EOF
 
+WORKDIR /api
+COPY . /api
+
 COPY mainapi.py /mainapi.py
-EXPOSE 8812
 
 CMD ["fastapi", "dev", "/mainapi.py"]
