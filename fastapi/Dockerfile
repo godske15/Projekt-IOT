@@ -7,6 +7,6 @@ EOF
 WORKDIR /api
 COPY . /api
 
-COPY mainapi.py /mainapi.py
+# COPY mainapi.py /mainapi.py
 
 CMD ["fastapi", "dev", "/mainapi.py"]

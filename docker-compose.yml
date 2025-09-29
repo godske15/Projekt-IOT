@@ -2,7 +2,9 @@ version: "3.9"
 
 services:
   questdb:
-    image: questdb/questdb:latest
+    build:
+      context: ./QuestDB
+      dockerfile: Dockerfile
     container_name: questdb
     ports:
       - "9003:9003"   # Metrics endpoint for monitoring QuestDBs performance and health
