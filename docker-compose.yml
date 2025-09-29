@@ -5,15 +5,16 @@ services:
     image: questdb/questdb:latest
     container_name: questdb
     ports:
+      - "9003:9003"   # Metrics endpoint for monitoring QuestDBs performance and health
       - "9000:9000"   # Web UI
       - "8812:8812"   # Postgres wire protocol
-      - "9009:9009"   # InfluxDB line protocol
+      - "9009:9009"   # InfluxDB line protocol over TCP
     volumes:
       - questdb-data:/var/lib/questdb
 
   fastapi:
     build:
-      context: .
+      context: ./fastapi
       dockerfile: Dockerfile
     container_name: fastapi-app
     depends_on:
