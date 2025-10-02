@@ -1,0 +1,42 @@
+version: "3.9"
+
+services:
+  questdb:
+    build:
+      context: ./QuestDB
+      dockerfile: Dockerfile
+    container_name: questdb
+    ports:
+      - "9003:9003"   # Metrics endpoint for monitoring QuestDBs performance and health
+      - "9000:9000"   # Web UI
+      - "8812:8812"   # Postgres wire protocol
+      - "9009:9009"   # InfluxDB line protocol over TCP
+    volumes:
+      - questdb-data:/var/lib/questdb
+
+  fastapi:
+    build:
+      context: ./fastapi
+      dockerfile: Dockerfile
+    container_name: fastapi-app
+    depends_on:
+      - questdb
+    ports:
+      - "8000:8000"
+    environment:
+      - QUESTDB_HOST=questdb
+      - QUESTDB_PORT=8812
+    volumes:
+      - ./fastapi:/app   # Mount din lokale fastapi mappe ind
+    command: uvicorn mainapi:app --host 0.0.0.0 --port 8000 --reload
+    # --reload gør at uvicorn selv genstarter når du ændrer kode
+
+  mqtt:
+    image: eclipse-mosquitto:latest
+    container_name: mqtt
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+
+volumes:
+  questdb-data:
