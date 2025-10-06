@@ -6,13 +6,39 @@ services:
       context: ./QuestDB
       dockerfile: Dockerfile
     container_name: questdb
+    restart: always
     ports:
-      - "9003:9003"   # Metrics endpoint for monitoring QuestDBs performance and health
       - "9000:9000"   # Web UI
-      - "8812:8812"   # Postgres wire protocol
       - "9009:9009"   # InfluxDB line protocol over TCP
+      - "8812:8812"   # Postgres wire protocol
+      - "9003:9003"   # Metrics / health endpoint
     volumes:
-      - questdb-data:/var/lib/questdb
+      - questdb-storage:/root/.questdb
+    environment:
+      - QDB_LOG_W_STDOUT_LEVEL=ERROR
+      - QDB_LOG_W_FILE_LEVEL=ERROR
+      - QDB_LOG_W_HTTP_MIN_LEVEL=ERROR
+      - QDB_SHARED_WORKER_COUNT=2            # Worker threads
+      # - QDB_PG_USER=${username}             # PostgreSQL user (via .env)
+      # - QDB_PG_PASSWORD=${password}         # PostgreSQL password (via .env)
+      - QDB_TELEMETRY_ENABLED=false          # Disable telemetry
+      # - QDB_HTTP_ENABLED=false              # Disable HTTP server (GUI & REST)
+      # - QDB_HTTP_BIND_TO=0.0.0.0:9000
+      # - QDB_HTTP_SECURITY_READONLY=true
+      # - QDB_HTTP_MIN_ENABLED=true
+      # - QDB_METRICS_ENABLED=true
+      # - QDB_HTTP_MIN_BIND_TO=0.0.0.0:9003
+      # - QDB_PG_ENABLED=false
+      # - QDB_PG_NET_BIND_TO=0.0.0.0:8812
+      # - QBD_LINE_TCP_ENABLED=false
+      # - QBD_LINE_TCP_NET_BIND_TO=0.0.0.0:9009
+      # - QBD_LINE_UDP_ENABLED=false
+      # - QBD_LINE_UDP_NET_BIND_TO=0.0.0.0:9009
+
+    healthcheck:
+      test: ["CMD", "curl", "-v", "http://127.0.0.1:9003"]
+      interval: 30s
+      timeout: 4s
 
   fastapi:
     build:
@@ -39,4 +65,5 @@ services:
       - "9001:9001"
 
 volumes:
-  questdb-data:
+  questdb-storage:
+    external: true
