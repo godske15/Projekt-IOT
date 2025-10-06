@@ -1,0 +1,46 @@
+# All config options: https://questdb.com/docs/configuration
+
+services:
+  questdb:
+    #image: questdb/questdb:9.0.3
+    container_name: questdb
+    restart: always
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - 9000:9000
+      - 9009:9009
+      - 8812:8812
+      - 9003:9003
+    volumes:
+      - questdb-storage:/root/.questdb
+    environment:
+      - QDB_LOG_W_STDOUT_LEVEL=ERROR
+      - QDB_LOG_W_FILE_LEVEL=ERROR
+      - QDB_LOG_W_HTTP_MIN_LEVEL=ERROR
+      - QDB_SHARED_WORKER_COUNT=2 # Amount of worker threads
+#      - QDB_PG_USER=${username} # postgresql user -> Configured in .env file
+#      - QDB_PG_PASSWORD=${password} # postgresql password -> Configured in .env file
+      - QDB_TELEMETRY_ENABLED=false # Disable telemetry
+      # - QDB_HTTP_ENABLED=false # Disable http server gui and rest interface
+      # - QDB_HTTP_BIND_TO=0.0.0.0:9000 # http server
+      # - QDB_HTTP_SECURITY_READONLY=true # HTTP read only mode
+      # - QDB_HTTP_MIN_ENABLED=true # Healtcheck endpoint enabled 
+      # - QDB_METRICS_ENABLED=true 
+      # - QDB_HTTP_MIN_BIND_TO=0.0.0.0:9003 # http health server
+      # - QDB_PG_ENABLED=false # Disable postgresql
+      # - QDB_PG_NET_BIND_TO=0.0.0.0:8812 # postgresql server
+      # - QBD_LINE_TCP_ENABLED=false # Disable influxdb tcp server
+      # - QBD_LINE_TCP_NET_BIND_TO=0.0.0.0:9009 # influxdb tcp server
+      # - QBD_LINE_UDP_ENABLED=false # Disable influxdb udp server
+      # - QBD_LINE_UDP_NET_BIND_TO=0.0.0.0:9009 # influxdb udp server
+
+    healthcheck:
+      test: ["CMD", "curl", "-v", "http://127.0.0.1:9003"]
+      interval: 30s
+      timeout: 4s
+
+volumes:
+  questdb-storage:
+    external: true
