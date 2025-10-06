@@ -1,0 +1,8 @@
+build/
+target/
+*.o
+*.a
+*.so
+Cargo.lock
+Dockerfile
+docker-compose.yml
