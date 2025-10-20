@@ -2,17 +2,28 @@ version: "3.9"
 
 services:
   questdb:
+    image: questdb/questdb:9.0.3
+    container_name: questdb
+    ports:
+      - "9000:9000"   # Web UI
+      - "9009:9009"   # InfluxDB line protocol
+      - "8812:8812"   # Postgres wire protocol
+      - "9003:9003"   # Metrics
+    volumes:
+      - questdb-data:/var/lib/questdb
+
+  questdb-client:
     build:
       context: ./QuestDB
       dockerfile: Dockerfile
-    container_name: questdb
-    ports:
-      - "9003:9003"   # Metrics endpoint for monitoring QuestDBs performance and health
-      - "9000:9000"   # Web UI
-      - "8812:8812"   # Postgres wire protocol
-      - "9009:9009"   # InfluxDB line protocol over TCP
-    volumes:
-      - questdb-data:/var/lib/questdb
+    container_name: questdb-client
+    depends_on:
+      - questdb
+    # wait-for-it ensures QuestDB er klar før vi kører main
+    entrypoint: >
+      sh -c "apt-get update && apt-get install -y netcat && 
+             until nc -z questdb 9009; do echo 'Waiting for QuestDB...'; sleep 1; done &&
+             ./build/main"
 
   fastapi:
     build:
@@ -24,12 +35,11 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - QUESTDB_HOST=questdb
-      - QUESTDB_PORT=8812
+      QUESTDB_HOST: questdb
+      QUESTDB_PORT: 8812
     volumes:
-      - ./fastapi:/app   # Mount din lokale fastapi mappe ind
+      - ./fastapi:/app
     command: uvicorn mainapi:app --host 0.0.0.0 --port 8000 --reload
-    # --reload gør at uvicorn selv genstarter når du ændrer kode
 
   mqtt:
     image: eclipse-mosquitto:latest
