@@ -2,6 +2,8 @@ FROM questdb/questdb:9.0.3
 
 # Install build dependencies
 USER root
+
+
 RUN apt-get update && apt-get install -y \
     curl \
     cmake \
