@@ -8,37 +8,26 @@ services:
     container_name: questdb
     restart: always
     ports:
-      - "9000:9000"   # Web UI
-      - "9009:9009"   # InfluxDB line protocol over TCP
-      - "8812:8812"   # Postgres wire protocol
-      - "9003:9003"   # Metrics / health endpoint
+      - "9000:9000"   # Web UI / REST
+      - "9009:9009"   # InfluxDB Line protocol
+      - "8812:8812"   # Postgres wire
+      - "9003:9003"   # Metrics / health
     volumes:
       - questdb-storage:/root/.questdb
     environment:
       - QDB_LOG_W_STDOUT_LEVEL=ERROR
       - QDB_LOG_W_FILE_LEVEL=ERROR
       - QDB_LOG_W_HTTP_MIN_LEVEL=ERROR
-      - QDB_SHARED_WORKER_COUNT=2            # Worker threads
-      # - QDB_PG_USER=${username}             # PostgreSQL user (via .env)
-      # - QDB_PG_PASSWORD=${password}         # PostgreSQL password (via .env)
-      - QDB_TELEMETRY_ENABLED=false          # Disable telemetry
-      # - QDB_HTTP_ENABLED=false              # Disable HTTP server (GUI & REST)
-      # - QDB_HTTP_BIND_TO=0.0.0.0:9000
-      # - QDB_HTTP_SECURITY_READONLY=true
-      # - QDB_HTTP_MIN_ENABLED=true
-      # - QDB_METRICS_ENABLED=true
-      # - QDB_HTTP_MIN_BIND_TO=0.0.0.0:9003
-      # - QDB_PG_ENABLED=false
-      # - QDB_PG_NET_BIND_TO=0.0.0.0:8812
-      # - QBD_LINE_TCP_ENABLED=false
-      # - QBD_LINE_TCP_NET_BIND_TO=0.0.0.0:9009
-      # - QBD_LINE_UDP_ENABLED=false
-      # - QBD_LINE_UDP_NET_BIND_TO=0.0.0.0:9009
-
+      - QDB_SHARED_WORKER_COUNT=2
+      - QDB_TELEMETRY_ENABLED=false
     healthcheck:
       test: ["CMD", "curl", "-v", "http://127.0.0.1:9003"]
       interval: 30s
       timeout: 4s
+      start_period: 40s
+      retries: 3
+    networks:
+      - iot-net
 
   fastapi:
     build:
@@ -46,23 +35,50 @@ services:
       dockerfile: Dockerfile
     container_name: fastapi-app
     depends_on:
-      - questdb
+      questdb:
+        condition: service_healthy
     ports:
       - "8000:8000"
     environment:
-      QUESTDB_HOST: questdb
-      QUESTDB_PORT: 8812
+      - QUESTDB_HOST=questdb
+      - QUESTDB_PORT=8812
     volumes:
       - ./fastapi:/app
     command: uvicorn mainapi:app --host 0.0.0.0 --port 8000 --reload
+    networks:
+      - iot-net
 
   mqtt:
-    image: eclipse-mosquitto:latest
-    container_name: mqtt
+    build:
+      context: ./mqtt
+      dockerfile: Dockerfile
+    container_name: mqtt-broker
     ports:
       - "1883:1883"
       - "9001:9001"
+    volumes:
+      - ./mqtt/config:/mosquitto/config
+      - ./mqtt/data:/mosquitto/data
+      - ./mqtt/logs:/mosquitto/log
+    networks:
+      - iot-net
+    restart: unless-stopped
+
+  mqtt-subscriber:
+    build:
+      context: ./mqtt
+      dockerfile: Dockerfile_client
+    container_name: mqtt-subscriber
+    depends_on:
+      - mqtt
+      - fastapi
+    networks:
+      - iot-net
 
 volumes:
   questdb-storage:
     external: true
+
+networks:
+  iot-net:
+    driver: bridge

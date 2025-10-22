@@ -1,12 +1,14 @@
 FROM python:3.9-slim-buster
-RUN <<EOF
-pip install asyncpg
-pip install fastapi[standard]
-EOF
 
-WORKDIR /api
-COPY . /api
+WORKDIR /app
 
-# COPY mainapi.py /mainapi.py
+# Install dependencies
+RUN pip install --no-cache-dir \
+    fastapi==0.104.1 \
+    uvicorn[standard]==0.24.0 \
+    asyncpg==0.29.0
 
-CMD ["fastapi", "dev", "/mainapi.py"]
+# Copy application code
+COPY . .
+
+CMD ["uvicorn", "mainapi:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]

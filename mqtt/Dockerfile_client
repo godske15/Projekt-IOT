@@ -1,0 +1,49 @@
+# mqtt/Dockerfile.client
+FROM ubuntu:22.04
+
+# Install dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    cmake \
+    g++ \
+    build-essential \
+    pkg-config \
+    git \
+    libssl-dev \
+    libspdlog-dev \
+    nlohmann-json3-dev \
+    libcurl4-openssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Paho MQTT C
+RUN git clone https://github.com/eclipse/paho.mqtt.c.git && \
+    cd paho.mqtt.c && \
+    cmake -Bbuild -H. -DPAHO_WITH_SSL=ON && \
+    cmake --build build/ --target install && \
+    ldconfig && \
+    cd .. && rm -rf paho.mqtt.c
+
+# Install Paho MQTT C++
+RUN git clone https://github.com/eclipse/paho.mqtt.cpp.git && \
+    cd paho.mqtt.cpp && \
+    cmake -Bbuild -H. -DPAHO_WITH_SSL=ON && \
+    cmake --build build/ --target install && \
+    ldconfig && \
+    cd .. && rm -rf paho.mqtt.cpp
+
+# Set working directory
+WORKDIR /app
+
+# Copy source code
+COPY paho-sub.cpp .
+COPY CMakeLists.txt .
+
+# Create log directory
+RUN mkdir -p /app/logs
+
+# Build C++ MQTT subscriber
+RUN cmake -S . -B build -DCMAKE_BUILD_TYPE=Release && \
+    cmake --build build
+
+# Run the subscriber
+CMD ["./build/paho-sub"]
