@@ -73,6 +73,24 @@ services:
     networks:
       - iot-net
 
+  nodered:
+    image: nodered/node-red:latest
+    container_name: nodered
+    user: root
+    restart: always
+    depends_on:
+      - mqtt
+      - questdb
+      - fastapi
+    ports:
+      - "1880:1880"
+    environment:
+      - TZ=Europe/Copenhagen
+    volumes:
+      - ./nodered_data:/data
+    networks:
+      - iot-net
+
 volumes:
   questdb-storage:
     external: true
