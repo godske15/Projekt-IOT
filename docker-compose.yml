@@ -73,7 +73,7 @@ services:
     networks:
       - iot-net
 
- grafana:
+  grafana:
     image: grafana/grafana:latest
     container_name: grafana
     restart: always
