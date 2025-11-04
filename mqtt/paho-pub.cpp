@@ -8,7 +8,7 @@
 using json = nlohmann::json;
 
 const std::string SERVER_ADDRESS("tcp://localhost:1883");
-const std::string CLIENT_ID("ExampleClient");
+const std::string CLIENT_ID("Sensor1Client");
 
 // Global sequence counter
 static uint64_t bdSeq = 0;
