@@ -73,21 +73,18 @@ services:
     networks:
       - iot-net
 
-  nodered:
-    image: nodered/node-red:latest
-    container_name: nodered
-    user: root
+ grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
     restart: always
     depends_on:
-      - mqtt
       - questdb
-      - fastapi
     ports:
-      - "1880:1880"
+      - "3000:3000"
     environment:
-      - TZ=Europe/Copenhagen
+      - GF_SECURITY_ADMIN_PASSWORD=secretpassword   # skift til noget stærkt
     volumes:
-      - ./nodered_data:/data
+      - grafana-storage:/var/lib/grafana
     networks:
       - iot-net
 
