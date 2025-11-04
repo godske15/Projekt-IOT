@@ -91,6 +91,7 @@ services:
 volumes:
   questdb-storage:
     external: true
+  grafana-storage:
 
 networks:
   iot-net:
