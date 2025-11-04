@@ -62,6 +62,7 @@ int main()
         
         // Setup security logger with database handler
         MQTTSecurityLogger security_logger;
+        logger.setup_logger();
         security_logger.log_subscriber_start();
         
         spdlog::info("Starting MQTT subscriber with security logging...");
