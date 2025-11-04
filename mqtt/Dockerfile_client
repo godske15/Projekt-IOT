@@ -36,6 +36,8 @@ WORKDIR /app
 
 # Copy source code
 COPY paho-sub.cpp .
+COPY spdlogSecurity.cpp .
+COPY spdlogSecurity.h .
 COPY CMakeLists.txt .
 
 # Create log directory
