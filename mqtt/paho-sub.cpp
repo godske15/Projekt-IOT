@@ -7,10 +7,10 @@
 #include <mqtt/async_client.h>
 #include <thread>
 #include <algorithm>
-#include <spdlogSecurity.h>
+#include "spdlogSecurity.h"
 #include <curl/curl.h>
 
-const std::string SERVER_ADDRESS = "tcp://localhost:1883";  // your broker URL
+const std::string SERVER_ADDRESS = "tcp://mqtt-broker:1883";  // your broker URL
 const std::string CLIENT_ID = "Subscriber";
 
 // MessageCallback class (same as before, just passing through)
@@ -62,7 +62,7 @@ int main()
         
         // Setup security logger with database handler
         MQTTSecurityLogger security_logger;
-        logger.setup_logger();
+        security_logger.setup_loggers();
         security_logger.log_subscriber_start();
         
         spdlog::info("Starting MQTT subscriber with security logging...");
