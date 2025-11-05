@@ -1,7 +1,7 @@
 #include "spdlogSecurity.h"
 
 
-void setup_loggers() {
+void MQTTSecurityLogger::setup_loggers() {
     try {
         auto security_file = std::make_shared<spdlog::sinks::rotating_file_sink_mt>(
             "logs/mqtt_security.log", 1024*1024*10, 5);
@@ -37,21 +37,21 @@ void setup_loggers() {
     }
 }
 
-void log_subscriber_start() {
+void MQTTSecurityLogger::log_subscriber_start() {
     system_logger->info("MQTT Security Subscriber starting up");
     access_logger->info("Monitoring topics for security events");
 }
 
-void log_broker_connection(const std::string& server, const std::string& client_id) {
+void MQTTSecurityLogger::log_broker_connection(const std::string& server, const std::string& client_id) {
     access_logger->info("Subscriber connected to broker - Server: {}, Client: {}", server, client_id);
     system_logger->info("Security monitoring active on broker: {}", server);
 }
 
-void log_topic_subscription(const std::string& topic) {
+void MQTTSecurityLogger::log_topic_subscription(const std::string& topic) {
     access_logger->info("Subscribed to security monitoring topic: {}", topic);
 }
 
-void analyze_nbirth_message(const std::string& topic, const std::string& payload) {
+void MQTTSecurityLogger::analyze_nbirth_message(const std::string& topic, const std::string& payload) {
     sparkplug_logger->info("NBIRTH message received - Topic: {}", topic);
     
     std::string node_id = extract_node_from_topic(topic);
@@ -96,7 +96,7 @@ void analyze_nbirth_message(const std::string& topic, const std::string& payload
     }
 }
 
-void analyze_ndata_message(const std::string& topic, const std::string& payload) {
+void MQTTSecurityLogger::analyze_ndata_message(const std::string& topic, const std::string& payload) {
     access_logger->info("NDATA message received - Topic: {}", topic);
     data_messages_per_minute++;
     
@@ -159,7 +159,7 @@ void analyze_ndata_message(const std::string& topic, const std::string& payload)
     }
 }
 
-void analyze_ddata_message(const std::string& topic, const std::string& payload) {
+void MQTTSecurityLogger::analyze_ddata_message(const std::string& topic, const std::string& payload) {
     access_logger->info("DDATA message received - Topic: {}", topic);
     data_messages_per_minute++;
     
@@ -197,7 +197,7 @@ void analyze_ddata_message(const std::string& topic, const std::string& payload)
 }
 
 // Keep all your other analyze_* methods (ndeath, ncmd, dcmd) as they were...
-void analyze_ndeath_message(const std::string& topic, const std::string& payload) {
+void MQTTSecurityLogger::analyze_ndeath_message(const std::string& topic, const std::string& payload) {
     std::string node_id = extract_node_from_topic(topic);
     sparkplug_logger->warn("NDEATH message received - Topic: {}, Node: {}", topic, node_id);
     
@@ -220,7 +220,7 @@ void analyze_ndeath_message(const std::string& topic, const std::string& payload
     registered_nodes.erase(node_id);
 }
 
-void analyze_ncmd_message(const std::string& topic, const std::string& payload) {
+void MQTTSecurityLogger::analyze_ncmd_message(const std::string& topic, const std::string& payload) {
     std::string node_id = extract_node_from_topic(topic);
     security_logger->warn("NCMD command received - Topic: {}, Node: {}", topic, node_id);
     command_count_per_minute++;
@@ -248,7 +248,7 @@ void analyze_ncmd_message(const std::string& topic, const std::string& payload) 
     }
 }
 
-void analyze_dcmd_message(const std::string& topic, const std::string& payload) {
+void MQTTSecurityLogger::analyze_dcmd_message(const std::string& topic, const std::string& payload) {
     std::string node_id = extract_node_from_topic(topic);
     std::string device_id = extract_device_from_topic(topic);
     security_logger->warn("DCMD command received - Topic: {}, Node: {}, Device: {}", 
@@ -256,21 +256,21 @@ void analyze_dcmd_message(const std::string& topic, const std::string& payload) 
     command_count_per_minute++;
 }
 
-void log_connection_failure(const std::string& error_msg) {
+void MQTTSecurityLogger::log_connection_failure(const std::string& error_msg) {
     security_logger->error("MQTT connection failed: {}", error_msg);
     system_logger->error("Subscriber connection failure - security monitoring interrupted");
 }
 
-void log_subscription_failure(const std::string& topic, const std::string& error_msg) {
+void MQTTSecurityLogger::log_subscription_failure(const std::string& topic, const std::string& error_msg) {
     security_logger->error("Topic subscription failed - Topic: {}, Error: {}", topic, error_msg);
 }
 
-void log_disconnect() {
+void MQTTSecurityLogger::log_disconnect() {
     access_logger->info("Subscriber disconnected from broker");
     system_logger->warn("Security monitoring stopped");
 }
 
-void perform_periodic_checks() {
+void MQTTSecurityLogger::perform_periodic_checks() {
     auto now = std::chrono::steady_clock::now();
     
     for (const auto& pair : last_birth_messages) {
@@ -298,7 +298,7 @@ void perform_periodic_checks() {
                         registered_nodes.size());
 }
 
-std::string extract_node_from_topic(const std::string& topic) {
+std::string MQTTSecurityLogger::extract_node_from_topic(const std::string& topic) {
     size_t last_slash = topic.find_last_of('/');
     if (last_slash != std::string::npos && last_slash < topic.length() - 1) {
         return topic.substr(last_slash + 1);
@@ -306,7 +306,7 @@ std::string extract_node_from_topic(const std::string& topic) {
     return "unknown_node";
 }
 
-std::string extract_device_from_topic(const std::string& topic) {
+std::string MQTTSecurityLogger::extract_device_from_topic(const std::string& topic) {
     size_t last_slash = topic.find_last_of('/');
     if (last_slash != std::string::npos && last_slash < topic.length() - 1) {
         return topic.substr(last_slash + 1);
@@ -314,7 +314,7 @@ std::string extract_device_from_topic(const std::string& topic) {
     return "unknown_device";
 }
 
-std::string get_metric_value_as_string(const json& value) {
+std::string MQTTSecurityLogger::get_metric_value_as_string(const json& value) {
     if (value.is_boolean()) {
         return value.get<bool>() ? "true" : "false";
     } else if (value.is_string()) {

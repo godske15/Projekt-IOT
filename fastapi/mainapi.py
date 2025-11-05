@@ -123,6 +123,10 @@ def read_root():
     }
 
 @app.get("/health")
+def health():
+    return{"status": "healthy"}
+
+@app.get("/db_health")
 async def health_check():
     try:
         async with pool.acquire() as conn:

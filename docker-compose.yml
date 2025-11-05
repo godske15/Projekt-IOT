@@ -45,13 +45,18 @@ services:
     command: uvicorn mainapi:app --host 0.0.0.0 --port 8000 --reload
     networks:
       - iot-net
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
 
   mqtt:
     build:
       context: ./mqtt
       dockerfile: Dockerfile
     container_name: mqtt-broker
-    user: root
     ports:
       - "1883:1883"
       - "9001:9001"
@@ -62,6 +67,12 @@ services:
     networks:
       - iot-net
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "mosquitto_sub", "-t", "$$SYS/#", "-C", "1", "-i", "healthcheck"]
+      interval: 5s
+      timeout: 30s
+      retries: 5
+      start_period: 30s
 
   mqtt-subscriber:
     build:
@@ -69,26 +80,30 @@ services:
       dockerfile: Dockerfile_client
     container_name: mqtt-subscriber
     depends_on:
-      - mqtt
-      - fastapi
+      mqtt:
+        condition: service_started
+      fastapi:
+        condition: service_healthy
+    environment:
+      - MQTT_BROKER_HOST=mqtt-broker
     networks:
       - iot-net
 
-  grafana:
-    image: grafana/grafana:latest
-    container_name: grafana
-    restart: always
-    depends_on:
-      - questdb
-      - fastapi
-    ports:
-      - "3000:3000"
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=secretpassword   # skift til noget stærkt
-    volumes:
-      - grafana-storage:/var/lib/grafana
-    networks:
-      - iot-net
+  # grafana:
+  #   image: grafana/grafana:latest
+  #   container_name: grafana
+  #   restart: always
+  #   depends_on:
+  #     - questdb
+  #     - fastapi
+  #   ports:
+  #     - "3000:3000"
+  #   environment:
+  #     - GF_SECURITY_ADMIN_PASSWORD=secretpassword   # skift til noget stærkt
+  #   volumes:
+  #     - grafana-storage:/var/lib/grafana
+  #   networks:
+  #     - iot-net
 
 volumes:
   questdb-storage:

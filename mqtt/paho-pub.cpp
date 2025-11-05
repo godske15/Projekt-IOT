@@ -8,7 +8,7 @@
 using json = nlohmann::json;
 
 const std::string SERVER_ADDRESS("tcp://localhost:1883");
-const std::string CLIENT_ID("Sensor1Client");
+const std::string CLIENT_ID("Publisher");
 
 // Global sequence counter
 static uint64_t bdSeq = 0;
@@ -123,6 +123,7 @@ int main() {
         ndeath_payload["timestamp"] = timenow;
         
         std::string publish_payload_ndeath = ndeath_payload.dump(4);
+        client.publish(topic_ndeath, publish_payload_ndeath.data(), publish_payload_ndeath.size(), 0, false);
         
         client.disconnect()->wait();
         
