@@ -51,6 +51,7 @@ services:
       context: ./mqtt
       dockerfile: Dockerfile
     container_name: mqtt-broker
+    user: root
     ports:
       - "1883:1883"
       - "9001:9001"
