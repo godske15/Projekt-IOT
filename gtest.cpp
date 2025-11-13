@@ -4,6 +4,11 @@
 #include <cstdlib>
 #include <string>
 
+// ======================================================================================================== //
+// ================================ Flags to use when compiling in terminal =============================== //
+// g++ gtest.cpp -I/usr/include/postgresql -lpaho-mqttpp3 -lpaho-mqtt3as -lpq -lgtest -lgtest_main -pthread //
+// ======================================================================================================== //
+
 bool publish(std::string message){
     const std::string SERVER_ADDRESS("tcp://localhost:1883");
     const std::string CLIENT_ID("Publisher");
