@@ -63,7 +63,7 @@ services:
     volumes:
       - ./mqtt/config:/mosquitto/config
       - ./mqtt/data:/mosquitto/data
-      - ./mqtt/logs:/mosquitto/log
+      - mqtt-logs:/mosquitto/log
     networks:
       - iot-net
     restart: unless-stopped
@@ -73,6 +73,24 @@ services:
       timeout: 30s
       retries: 5
       start_period: 60s
+
+  mqtt-log-sync:
+    image: alpine:3.21
+    container_name: mqtt-log-sync
+    depends_on:
+      - mqtt
+    volumes:
+      - mqtt-logs:/logs:ro
+      - ./mqtt/logs:/output
+    command: >
+      sh -c "
+      mkdir -p /output &&
+      touch /output/mosquitto.log /output/stderr.log &&
+      tail -F /logs/mosquitto.log > /output/mosquitto.log 2>&1 &
+      tail -F /logs/stderr.log > /output/stderr.log 2>&1 &
+      wait
+      "
+    restart: unless-stopped
 
   mqtt-subscriber:
     build:
@@ -84,6 +102,8 @@ services:
         condition: service_started
       fastapi:
         condition: service_healthy
+    volumes:
+      - ./mqtt/logs:/spdlogs
     environment:
       - MQTT_BROKER_HOST=mqtt-broker
     networks:
@@ -109,6 +129,7 @@ volumes:
   questdb-storage:
     external: true
   grafana-storage:
+  mqtt-logs:
 
 networks:
   iot-net:

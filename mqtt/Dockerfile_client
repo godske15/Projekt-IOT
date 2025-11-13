@@ -40,6 +40,8 @@ COPY paho-sub.cpp .
 COPY spdlogSecurity.cpp .
 COPY spdlogSecurity.h .
 COPY CMakeLists.txt .
+COPY logs/ ./spdlogs/
+RUN rm -f ./logs/mosquitto.log ./logs/stderr.log
 
 # Create log directory
 RUN mkdir -p /app/logs
