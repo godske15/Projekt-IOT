@@ -9,6 +9,7 @@
 #include <algorithm>
 #include "spdlogSecurity.h"
 #include <curl/curl.h>
+#include <gtest/gtest.h>
 
 const std::string SERVER_ADDRESS = "tcp://mqtt-broker:1883";  // your broker URL
 const std::string CLIENT_ID = "Subscriber";
