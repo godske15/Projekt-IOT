@@ -119,7 +119,7 @@ services:
    ports:
      - "3000:3000"
    environment:
-     - GF_SECURITY_ADMIN_PASSWORD=secretpassword   # skift til noget stærkt
+     - GF_SECURITY_ADMIN_PASSWORD=anders123J   # skift til noget stærkt
    volumes:
      - grafana-storage:/var/lib/grafana
    networks:
