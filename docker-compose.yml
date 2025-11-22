@@ -109,21 +109,22 @@ services:
     networks:
       - iot-net
 
-  # grafana:
-  #   image: grafana/grafana:latest
-  #   container_name: grafana
-  #   restart: always
-  #   depends_on:
-  #     - questdb
-  #     - fastapi
-  #   ports:
-  #     - "3000:3000"
-  #   environment:
-  #     - GF_SECURITY_ADMIN_PASSWORD=secretpassword   # skift til noget stærkt
-  #   volumes:
-  #     - grafana-storage:/var/lib/grafana
-  #   networks:
-  #     - iot-net
+  grafana:  
+    image: grafana/grafana:latest  
+    container_name: grafana  
+    restart: always  
+    depends_on:  
+      - questdb  
+      - fastapi  
+    ports:  
+      - "3000:3000"  
+    environment:  
+      - GF_SECURITY_ADMIN_PASSWORD=anders123J  
+      - GF_INSTALL_PLUGINS=yesoreyeram-infinity-datasource  
+    volumes:  
+      - grafana-storage:/var/lib/grafana  
+    networks:  
+      - iot-net  
 
 volumes:
   questdb-storage:
