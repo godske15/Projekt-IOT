@@ -69,6 +69,11 @@ int main() {
         nbirth_payload["metrics"][6]["dataType"] = "String";
         nbirth_payload["metrics"][6]["value"] = "ESP32-POE";
 
+        nbirth_payload["metrics"][7]["name"] = "Inputs/Run_Mode";
+        nbirth_payload["metrics"][7]["timestamp"] = timenow;
+        nbirth_payload["metrics"][7]["dataType"] = "Float";
+        nbirth_payload["metrics"][7]["value"] = 25.5;
+
         nbirth_payload["metrics"][7]["name"] = "Inputs/Temperature";
         nbirth_payload["metrics"][7]["timestamp"] = timenow;
         nbirth_payload["metrics"][7]["dataType"] = "Float";
@@ -79,10 +84,10 @@ int main() {
         nbirth_payload["metrics"][8]["dataType"] = "Float";
         nbirth_payload["metrics"][8]["value"] = 500.0;
 
-        nbirth_payload["metrics"][9]["name"] = "Inputs/Fan_speed";
+        nbirth_payload["metrics"][9]["name"] = "Inputs/Outdoor_temperature";
         nbirth_payload["metrics"][9]["timestamp"] = timenow;
         nbirth_payload["metrics"][9]["dataType"] = "Float";
-        nbirth_payload["metrics"][9]["value"] = 30.0;
+        nbirth_payload["metrics"][9]["value"] = 15.2;
 
         nbirth_payload["metrics"][10]["name"] = "Inputs/Status";
         nbirth_payload["metrics"][10]["timestamp"] = timenow;
