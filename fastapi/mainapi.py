@@ -7,6 +7,7 @@ import asyncpg
 from typing import Union, Optional, List, Dict
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
+import re
 
 os.environ['TZ'] = 'UTC'
 time.tzset()
@@ -14,17 +15,98 @@ time.tzset()
 app = FastAPI()
 
 pool = None
+created_tables = set()  # Cache til at holde styr på oprettede tabeller
 
-# --- Data model for incoming sensor data ---
-class SensorMetric(BaseModel):
-    node_id: str
-    device_id: Optional[str] = None
-    metric_name: str
-    metric_value: Union[float, int, str]
+# --- Data model for incoming Sparkplug B data ---
+class Metric(BaseModel):
+    name: str
+    timestamp: int
+    dataType: str
+    value: Union[float, int, str, bool]
 
-class SensorDataIn(BaseModel):
-    timestamp: int = Field(..., description="Unix nanoseconds timestamp")
-    metrics: List[SensorMetric]
+class SparkplugPayload(BaseModel):
+    timestamp: int
+    seq: int
+    metrics: List[Metric]
+
+def sanitize_table_name(metric_name: str) -> str:
+    """
+    Konverterer metric navn til et gyldigt tabel navn
+    Eksempel: "Inputs/Indoor_temperature" -> "indoor_temperature"
+    Eksempel: "Inputs/Outdoor_temperature" -> "outdoor_temperature"
+    """
+    # Fjern kun præfiks som "Inputs/", "Node Control/", etc.
+    # Men behold resten af navnet intakt
+    if '/' in metric_name:
+        metric_name = metric_name.split('/', 1)[-1]  # Tag alt efter første '/'
+    
+    # Konverter til lowercase og erstat ugyldige tegn
+    table_name = re.sub(r'[^a-z0-9_]', '_', metric_name.lower())
+    
+    return table_name
+
+def get_column_type(data_type: str, value: any) -> str:
+    """
+    Bestemmer QuestDB kolonne type baseret på dataType eller værdi
+    """
+    if data_type:
+        type_mapping = {
+            "Float": "DOUBLE",
+            "UInt64": "LONG",
+            "Boolean": "BOOLEAN",
+            "String": "STRING",
+            "Int": "INT",
+            "Double": "DOUBLE"
+        }
+        return type_mapping.get(data_type, "STRING")
+    
+    # Hvis ingen dataType, gæt baseret på værdi
+    if isinstance(value, bool):
+        return "BOOLEAN"
+    elif isinstance(value, int):
+        return "LONG"
+    elif isinstance(value, float):
+        return "DOUBLE"
+    else:
+        return "STRING"
+
+async def ensure_table_exists(conn, table_name: str, column_type: str):
+    """
+    Opretter en tabel hvis den ikke eksisterer
+    """
+    if table_name in created_tables:
+        return
+    
+    try:
+        # Check om tabellen allerede eksisterer
+        # QuestDB returnerer table_name (lowercase med underscore)
+        exists = await conn.fetchval("""
+            SELECT COUNT(*) 
+            FROM tables() 
+            WHERE table_name = $1
+        """, table_name)
+        
+        if exists == 0:
+            # Bestem kolonne navn baseret på type
+            value_column = "status" if column_type == "STRING" else "value"
+            
+            create_query = f"""
+                CREATE TABLE IF NOT EXISTS {table_name} (
+                    timestamp TIMESTAMP,
+                    node_name SYMBOL,
+                    device_name SYMBOL,
+                    {value_column} {column_type}
+                ) timestamp(timestamp) PARTITION BY DAY;
+            """
+            
+            await conn.execute(create_query)
+            print(f"✓ Tabel '{table_name}' oprettet med {value_column} kolonne ({column_type})")
+        
+        created_tables.add(table_name)
+        
+    except Exception as e:
+        print(f"✗ Fejl ved oprettelse af tabel {table_name}: {e}")
+        raise
 
 @app.on_event("startup")
 async def startup():
@@ -51,44 +133,9 @@ async def startup():
         print(f"✗ Failed to connect to QuestDB: {e}")
         raise
 
-        # --- Create necessary tables if they do not exist ---
-    async with pool.acquire() as conn:
-        try:
-            await conn.execute("""
-                CREATE TABLE IF NOT EXISTS sensor_data (
-                    timestamp TIMESTAMP,
-                    node_id SYMBOL,
-                    device_id SYMBOL,
-                    metric_name SYMBOL,
-                    metric_value DOUBLE
-                ) timestamp(timestamp);
-            """)
-
-            await conn.execute("""
-                CREATE TABLE IF NOT EXISTS node_data (
-                    timestamp TIMESTAMP,
-                    node_id SYMBOL,
-                    metric_name SYMBOL,
-                    metric_value DOUBLE,
-                    is_alarm BOOLEAN
-                ) timestamp(timestamp);
-            """)
-
-            await conn.execute("""
-                CREATE TABLE IF NOT EXISTS node_births (
-                    timestamp TIMESTAMP,
-                    node_id SYMBOL,
-                    sequence_number INT
-                ) timestamp(timestamp);
-            """)
-
-            print("✓ Tables ensured")
-        except Exception as e:
-            print(f"✗ Failed to create tables: {e}")
-            raise
-
     print("=" * 50)
     print("FastAPI REST API Active!")
+    print("- Dynamic table creation enabled")
     print("- Ingestion & Read-only access to QuestDB")
     print("=" * 50)
 
@@ -99,33 +146,113 @@ async def shutdown():
         await pool.close()
         print("QuestDB pool closed")
 
-@app.post("/ingest/sensor")
-async def ingest_sensor_data(data: SensorDataIn):
-    ts_datetime = datetime.fromtimestamp(data.timestamp / 1_000_000_000)
+@app.post("/ingest/nbirth/{group_id}/{node_id}")
+async def ingest_nbirth(group_id: str, node_id: str, data: SparkplugPayload):
+    """
+    Håndterer NBIRTH beskeder - opretter kun tabeller, indsætter IKKE data
+    Topic format: spBv1.0/{group_id}/NBIRTH/{node_id}
+    """
+    ts_datetime = datetime.fromtimestamp(data.timestamp)
+    
+    tables_created = 0
+    
     async with pool.acquire() as conn:
         try:
             for m in data.metrics:
-                await conn.execute("""
-                    INSERT INTO sensor_data(timestamp, node_id, device_id, metric_name, metric_value)
-                    VALUES($1, $2, $3, $4, $5)
-                """, ts_datetime, m.node_id, m.device_id, m.metric_name, m.metric_value)
+                metric_name = m.name
+                
+                # Spring over control og properties metrics
+                if metric_name.startswith("Node Control/") or metric_name.startswith("Properties/"):
+                    continue
+                
+                # Spring over bdSeq (det er allerede i payload level)
+                if metric_name == "bdSeq":
+                    continue
+                
+                # Håndter kun "Inputs/" metrics - OPRET KUN TABELLER
+                if metric_name.startswith("Inputs/"):
+                    table_name = sanitize_table_name(metric_name)
+                    column_type = get_column_type(m.dataType, m.value)
+                    
+                    # Sørg for at tabellen eksisterer (men indsæt IKKE data)
+                    await ensure_table_exists(conn, table_name, column_type)
+                    tables_created += 1
+                    
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Table creation failed: {e}")
+
+    return {
+        "status": "ok",
+        "message": "Tables created, no data inserted",
+        "group_id": group_id,
+        "node_id": node_id,
+        "sequence": data.seq,
+        "tables_created": tables_created,
+        "timestamp": ts_datetime.isoformat()
+    }
+
+@app.post("/ingest/ddata/{group_id}/{node_id}/{device_id}")
+async def ingest_ddata(group_id: str, node_id: str, device_id: str, data: SparkplugPayload):
+    """
+    Håndterer DDATA beskeder (device data)
+    Topic format: spBv1.0/{group_id}/DDATA/{node_id}/{device_id}
+    """
+    # Fjern timezone info for at matche QuestDB's forventninger
+    ts_datetime = datetime.fromtimestamp(data.timestamp)
+    
+    inserted_count = 0
+    
+    async with pool.acquire() as conn:
+        try:
+            for m in data.metrics:
+                table_name = sanitize_table_name(m.name)
+                column_type = get_column_type(m.dataType, m.value)
+                
+                # Sørg for at tabellen eksisterer
+                await ensure_table_exists(conn, table_name, column_type)
+                
+                # Bestem kolonne navn
+                value_column = "status" if column_type == "STRING" else "value"
+                
+                # Indsæt data
+                insert_query = f"""
+                    INSERT INTO {table_name}(timestamp, node_name, device_name, {value_column})
+                    VALUES($1, $2, $3, $4)
+                """
+                
+                await conn.execute(
+                    insert_query,
+                    ts_datetime,
+                    node_id,
+                    device_id,
+                    m.value
+                )
+                inserted_count += 1
+                
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"DB insert failed: {e}")
 
-    return {"status": "ok", "inserted_metrics": len(data.metrics)}
-
+    return {
+        "status": "ok",
+        "group_id": group_id,
+        "node_id": node_id,
+        "device_id": device_id,
+        "sequence": data.seq,
+        "inserted_metrics": inserted_count,
+        "timestamp": ts_datetime.isoformat()
+    }
 
 @app.get("/")
 def read_root():
     return {
         "service": "IoT Data API",
         "status": "running",
-        "description": "Read-only REST API for IoT data"
+        "description": "Dynamic table creation REST API for IoT data"
     }
 
 @app.get("/health")
 def health():
-    return{"status": "healthy"}
+    return {"status": "healthy"}
 
 @app.get("/db_health")
 async def health_check():
@@ -141,127 +268,58 @@ async def health_check():
         "status": "healthy" if db_status else "unhealthy"
     }
 
-@app.get("/qdbversion")
-async def get_questdb_version():
+@app.get("/tables")
+async def list_tables():
+    """Vis alle oprettede tabeller"""
     async with pool.acquire() as conn:
-        version = await conn.fetchval("SELECT version()")
-    return {"QuestDB_version": version}
-
-@app.get("/sensor_data")
-async def query_sensor_data(hours: int = 24, limit: int = 100, device_id: Optional[str] = None):
-    """Get sensor data from DDATA messages"""
-    async with pool.acquire() as conn:
-        if device_id:
-            rows = await conn.fetch("""
-                SELECT timestamp, node_id, device_id, metric_name, metric_value
-                FROM sensor_data
-                WHERE timestamp >= dateadd('h', -$1, now())
-                AND device_id = $3
-                ORDER BY timestamp DESC 
-                LIMIT $2
-            """, hours, limit, device_id)
-        else:
-            rows = await conn.fetch("""
-                SELECT timestamp, node_id, device_id, metric_name, metric_value
-                FROM sensor_data
-                WHERE timestamp >= dateadd('h', -$1, now())
-                ORDER BY timestamp DESC 
-                LIMIT $2
-            """, hours, limit)
-        
+        rows = await conn.fetch("SELECT table_name FROM tables()")
         return {
-            "count": len(rows),
-            "data": [dict(row) for row in rows]
+            "tables": [dict(row)['table_name'] for row in rows],
+            "count": len(rows)
         }
 
-@app.get("/node_data")
-async def query_node_data(hours: int = 24, limit: int = 100, node_id: Optional[str] = None):
-    """Get node data from NDATA messages"""
+@app.get("/table/{table_name}")
+async def query_table(table_name: str, hours: int = 24, limit: int = 100):
+    """Query en specifik dynamisk oprettet tabel"""
+    # Sanitize table name for sikkerhed
+    safe_table_name = re.sub(r'[^a-z0-9_]', '', table_name.lower())
+    
     async with pool.acquire() as conn:
-        if node_id:
-            rows = await conn.fetch("""
-                SELECT timestamp, node_id, metric_name, metric_value, is_alarm
-                FROM node_data
-                WHERE timestamp >= dateadd('h', -$1, now())
-                AND node_id = $3
-                ORDER BY timestamp DESC 
-                LIMIT $2
-            """, hours, limit, node_id)
-        else:
-            rows = await conn.fetch("""
-                SELECT timestamp, node_id, metric_name, metric_value, is_alarm
-                FROM node_data
-                WHERE timestamp >= dateadd('h', -$1, now())
-                ORDER BY timestamp DESC 
-                LIMIT $2
-            """, hours, limit)
-        
-        return {
-            "count": len(rows),
-            "data": [dict(row) for row in rows]
-        }
-
-@app.get("/alarms")
-async def query_alarms(hours: int = 24):
-    """Get all alarm events"""
-    async with pool.acquire() as conn:
-        rows = await conn.fetch("""
-            SELECT timestamp, node_id, metric_name, metric_value
-            FROM node_data
-            WHERE is_alarm = true 
-            AND timestamp >= dateadd('h', -$1, now())
-            ORDER BY timestamp DESC 
-            LIMIT 100
-        """, hours)
-        
-        return {
-            "count": len(rows),
-            "alarms": [dict(row) for row in rows]
-        }
-
-@app.get("/node_births")
-async def query_node_births(limit: int = 20):
-    """Get node birth events"""
-    async with pool.acquire() as conn:
-        rows = await conn.fetch("""
-            SELECT timestamp, node_id, sequence_number
-            FROM node_births
-            ORDER BY timestamp DESC 
-            LIMIT $1
-        """, limit)
-        
-        return {
-            "count": len(rows),
-            "births": [dict(row) for row in rows]
-        }
+        try:
+            # Check om tabellen eksisterer (brug table_name)
+            exists = await conn.fetchval("""
+                SELECT COUNT(*) FROM tables() WHERE table_name = $1
+            """, safe_table_name)
+            
+            if exists == 0:
+                raise HTTPException(status_code=404, detail=f"Table '{safe_table_name}' not found")
+            
+            # Query tabellen
+            rows = await conn.fetch(f"""
+                SELECT * FROM {safe_table_name}
+                WHERE timestamp >= dateadd('h', -{hours}, now())
+                ORDER BY timestamp DESC
+                LIMIT {limit}
+            """)
+            
+            return {
+                "table": safe_table_name,
+                "count": len(rows),
+                "data": [dict(row) for row in rows]
+            }
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/statistics")
 async def get_statistics():
     """Get overall statistics"""
     async with pool.acquire() as conn:
-        # Count total sensor readings
-        sensor_count = await conn.fetchval("SELECT count(*) FROM sensor_data")
-        
-        # Count active nodes (births in last 24h)
-        active_nodes = await conn.fetch("""
-            SELECT DISTINCT node_id 
-            FROM node_births 
-            WHERE timestamp >= dateadd('h', -24, now())
-        """)
-        
-        # Count recent alarms
-        alarm_count = await conn.fetchval("""
-            SELECT count(*) 
-            FROM node_data 
-            WHERE is_alarm = true 
-            AND timestamp >= dateadd('h', -24, now())
-        """)
+        # Count all tables
+        all_tables = await conn.fetch("SELECT table_name FROM tables()")
         
         return {
-            "total_sensor_readings": sensor_count,
-            "active_nodes_24h": len(active_nodes),
-            "alarms_24h": alarm_count,
-            "nodes": [dict(row)['node_id'] for row in active_nodes]
+            "total_tables": len(all_tables),
+            "tables": [dict(row)['table_name'] for row in all_tables]
         }
 
 # Add these new endpoints for Grafana  

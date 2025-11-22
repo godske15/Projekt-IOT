@@ -71,50 +71,51 @@ int main() {
 
         nbirth_payload["metrics"][7]["name"] = "Inputs/Run_Mode";
         nbirth_payload["metrics"][7]["timestamp"] = timenow;
-        nbirth_payload["metrics"][7]["dataType"] = "Float";
-        nbirth_payload["metrics"][7]["value"] = 25.5;
+        nbirth_payload["metrics"][7]["dataType"] = "String";
+        nbirth_payload["metrics"][7]["value"] = "Manual Reduced Speed";
 
-        nbirth_payload["metrics"][7]["name"] = "Inputs/Temperature";
-        nbirth_payload["metrics"][7]["timestamp"] = timenow;
-        nbirth_payload["metrics"][7]["dataType"] = "Float";
-        nbirth_payload["metrics"][7]["value"] = 25.5;
-
-        nbirth_payload["metrics"][8]["name"] = "Inputs/CO2_levels";
+        nbirth_payload["metrics"][8]["name"] = "Inputs/Indoor_temperature";
         nbirth_payload["metrics"][8]["timestamp"] = timenow;
         nbirth_payload["metrics"][8]["dataType"] = "Float";
-        nbirth_payload["metrics"][8]["value"] = 500.0;
+        nbirth_payload["metrics"][8]["value"] = 25.5;
 
-        nbirth_payload["metrics"][9]["name"] = "Inputs/Outdoor_temperature";
+        nbirth_payload["metrics"][9]["name"] = "Inputs/CO2_levels";
         nbirth_payload["metrics"][9]["timestamp"] = timenow;
         nbirth_payload["metrics"][9]["dataType"] = "Float";
-        nbirth_payload["metrics"][9]["value"] = 15.2;
+        nbirth_payload["metrics"][9]["value"] = 500.0;
 
-        nbirth_payload["metrics"][10]["name"] = "Inputs/Status";
+        nbirth_payload["metrics"][10]["name"] = "Inputs/Outdoor_temperature";
         nbirth_payload["metrics"][10]["timestamp"] = timenow;
-        nbirth_payload["metrics"][10]["dataType"] = "UInt64";
-        nbirth_payload["metrics"][10]["value"] = 0;
+        nbirth_payload["metrics"][10]["dataType"] = "Float";
+        nbirth_payload["metrics"][10]["value"] = 15.2;
 
-        nbirth_payload["metrics"][11]["name"] = "Inputs/Alarms";
+        nbirth_payload["metrics"][11]["name"] = "Inputs/Alarm_status";
         nbirth_payload["metrics"][11]["timestamp"] = timenow;
-        nbirth_payload["metrics"][11]["dataType"] = "UInt64";
-        nbirth_payload["metrics"][11]["value"] = 0;
+        nbirth_payload["metrics"][11]["dataType"] = "String";
+        nbirth_payload["metrics"][11]["value"] = "Normal";
 
         std::string publish_payload = nbirth_payload.dump(4);
         client.publish(topic_nbirth, publish_payload.data(), publish_payload.size(), 0, false);
         
         std::cout << "NBIRTH sent with sequence: " << bdSeq << std::endl;
         
-        // DDATA besked med samme tilgang
+        // DDATA besked - SKAL matche NBIRTH metric names!
         const std::string topic_data("spBv1.0/UCL-SEE-A/DDATA/TLab/VentSensor1");
         json dData_payload;
-        
+
         dData_payload["timestamp"] = timenow;
         dData_payload["seq"] = getNextSequence();
-        
-        dData_payload["metrics"][0]["name"] = "temperature";
+
+        // KORREKT - brug sequential indices
+        dData_payload["metrics"][0]["name"] = "Inputs/Indoor_temperature";
         dData_payload["metrics"][0]["timestamp"] = timenow;
         dData_payload["metrics"][0]["dataType"] = "Float";
         dData_payload["metrics"][0]["value"] = 26.2;
+
+        dData_payload["metrics"][1]["name"] = "Inputs/Outdoor_temperature";  // Index 1, ikke 10!
+        dData_payload["metrics"][1]["timestamp"] = timenow;
+        dData_payload["metrics"][1]["dataType"] = "Float";
+        dData_payload["metrics"][1]["value"] = 15.2;
         
         std::string publish_payload_data = dData_payload.dump(4);
         client.publish(topic_data, publish_payload_data.data(), publish_payload_data.size(), 0, false);
