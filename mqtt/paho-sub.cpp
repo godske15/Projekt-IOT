@@ -190,6 +190,10 @@ int main()
         
         mqtt::connect_options connOpts;
         connOpts.set_clean_session(true);
+
+        // MQTT authentication
+        connOpts.set_user_name("OlimexSubscribe");
+        connOpts.set_password("SubscribingEveryday");
         
         try 
         {
