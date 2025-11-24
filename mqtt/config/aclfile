@@ -1,0 +1,7 @@
+# Give user OlimexPublish write access to topics
+user OlimexPublish
+topic write spBv1.0/UCL-SEE-A/#
+
+# Give user OlimexSubscribe read access to all topics related to possible Modbus topics
+user OlimexSubscribe
+topic read spBv1.0/#

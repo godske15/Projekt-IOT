@@ -68,7 +68,7 @@ services:
       - iot-net
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "mosquitto_sub", "-t", "$$SYS/#", "-C", "1", "-i", "healthcheck"]
+      test: ["CMD", "mosquitto_sub", "-t", "$$SYS/#", "-C", "1", "-i", "healthcheck", "-u", "BrokerHealtcheck", "-p", "admin123"]
       interval: 60s
       timeout: 30s
       retries: 5
