@@ -322,259 +322,314 @@ async def get_statistics():
             "tables": [dict(row)['table_name'] for row in all_tables]
         }
 
-# Add these new endpoints for Grafana  
+# ==================== GRAFANA ENDPOINTS (CORRECTED) ====================  
 
-@app.get("/grafana/timeseries/sensor")  
-async def grafana_sensor_timeseries(  
-    metric_name: str,  
-    node_id: Optional[str] = None,  
-    device_id: Optional[str] = None,  
+@app.get("/grafana/tables/list")  
+async def grafana_list_tables():  
+    """  
+    List all available tables (metrics) for Grafana  
+    """  
+    async with pool.acquire() as conn:  
+        rows = await conn.fetch("""  
+            SELECT table_name   
+            FROM tables()   
+            WHERE table_name NOT IN ('sys.column_versions_purge_log', 'telemetry', 'telemetry_config')  
+            ORDER BY table_name  
+        """)  
+        return [row['table_name'] for row in rows]  
+
+@app.get("/grafana/nodes/list")  
+async def grafana_list_nodes():  
+    """  
+    List all available node names across all tables  
+    """  
+    async with pool.acquire() as conn:  
+        # Get all tables first  
+        tables = await conn.fetch("""  
+            SELECT table_name   
+            FROM tables()   
+            WHERE table_name NOT IN ('sys.column_versions_purge_log', 'telemetry', 'telemetry_config')  
+        """)  
+        
+        all_nodes = set()  
+        for table in tables:  
+            table_name = table['table_name']  
+            try:  
+                nodes = await conn.fetch(f"""  
+                    SELECT DISTINCT node_name   
+                    FROM {table_name}  
+                """)  
+                all_nodes.update([row['node_name'] for row in nodes])  
+            except:  
+                continue  
+        
+        return sorted(list(all_nodes))  
+
+@app.get("/grafana/devices/list")  
+async def grafana_list_devices(node_name: Optional[str] = None):  
+    """  
+    List all available device names  
+    """  
+    async with pool.acquire() as conn:  
+        tables = await conn.fetch("""  
+            SELECT table_name   
+            FROM tables()   
+            WHERE table_name NOT IN ('sys.column_versions_purge_log', 'telemetry', 'telemetry_config')  
+        """)  
+        
+        all_devices = set()  
+        for table in tables:  
+            table_name = table['table_name']  
+            try:  
+                if node_name:  
+                    devices = await conn.fetch(f"""  
+                        SELECT DISTINCT device_name   
+                        FROM {table_name}  
+                        WHERE node_name = $1  
+                    """, node_name)  
+                else:  
+                    devices = await conn.fetch(f"""  
+                        SELECT DISTINCT device_name   
+                        FROM {table_name}  
+                    """)  
+                all_devices.update([row['device_name'] for row in devices])  
+            except:  
+                continue  
+        
+        return sorted(list(all_devices))  
+
+@app.get("/grafana/timeseries/{table_name}")  
+async def grafana_timeseries(  
+    table_name: str,  
+    node_name: Optional[str] = None,  
+    device_name: Optional[str] = None,  
     from_ms: Optional[int] = Query(None, alias="from"),  
     to_ms: Optional[int] = Query(None, alias="to")  
 ):  
     """  
-    Grafana-compatible time series endpoint for sensor data  
-    Returns data in Grafana Simple JSON format  
+    Get time series data from a specific dynamic table  
+    Works with both 'value' and 'status' columns  
     """  
+    # Sanitize table name  
+    safe_table_name = re.sub(r'[^a-z0-9_]', '', table_name.lower())  
+    
     # Calculate time range  
     if from_ms and to_ms:  
         from_time = datetime.fromtimestamp(from_ms / 1000, tz=timezone.utc)  
         to_time = datetime.fromtimestamp(to_ms / 1000, tz=timezone.utc)  
     else:  
         to_time = datetime.now(timezone.utc)  
-        from_time = to_time - timedelta(hours=24)  
+        from_time = to_time - timedelta(hours=6)  
     
     async with pool.acquire() as conn:  
-        query = """  
-            SELECT timestamp, metric_value  
-            FROM sensor_data  
-            WHERE metric_name = $1  
-            AND timestamp >= $2  
-            AND timestamp <= $3  
-        """  
-        params = [metric_name, from_time, to_time]  
+        # Check if table exists  
+        exists = await conn.fetchval("""  
+            SELECT COUNT(*) FROM tables() WHERE table_name = $1  
+        """, safe_table_name)  
         
-        if node_id:  
-            query += " AND node_id = $4"  
-            params.append(node_id)  
-            if device_id:  
-                query += " AND device_id = $5"  
-                params.append(device_id)  
-        elif device_id:  
-            query += " AND device_id = $4"  
-            params.append(device_id)  
+        if exists == 0:  
+            raise HTTPException(status_code=404, detail=f"Table '{safe_table_name}' not found")  
         
-        query += " ORDER BY timestamp"  
-        
-        rows = await conn.fetch(query, *params)  
-        
-        # Format for Grafana: [[value, timestamp_ms], ...]  
-        datapoints = [  
-            [float(row['metric_value']), int(row['timestamp'].timestamp() * 1000)]  
-            for row in rows  
-        ]  
-        
-        target_name = f"{metric_name}"  
-        if node_id:  
-            target_name += f" ({node_id}"  
-            if device_id:  
-                target_name += f"/{device_id}"  
-            target_name += ")"  
-        
-        return [{  
-            "target": target_name,  
-            "datapoints": datapoints  
-        }]  
-
-@app.get("/grafana/timeseries/node")  
-async def grafana_node_timeseries(  
-    metric_name: str,  
-    node_id: Optional[str] = None,  
-    from_ms: Optional[int] = Query(None, alias="from"),  
-    to_ms: Optional[int] = Query(None, alias="to")  
-):  
-    """  
-    Grafana-compatible time series endpoint for node data  
-    """  
-    if from_ms and to_ms:  
-        from_time = datetime.fromtimestamp(from_ms / 1000, tz=timezone.utc)  
-        to_time = datetime.fromtimestamp(to_ms / 1000, tz=timezone.utc)  
-    else:  
-        to_time = datetime.now(timezone.utc)  
-        from_time = to_time - timedelta(hours=24)  
-    
-    async with pool.acquire() as conn:  
-        query = """  
-            SELECT timestamp, metric_value  
-            FROM node_data  
-            WHERE metric_name = $1  
-            AND timestamp >= $2  
-            AND timestamp <= $3  
-        """  
-        params = [metric_name, from_time, to_time]  
-        
-        if node_id:  
-            query += " AND node_id = $4"  
-            params.append(node_id)  
-        
-        query += " ORDER BY timestamp"  
-        
-        rows = await conn.fetch(query, *params)  
-        
-        datapoints = [  
-            [float(row['metric_value']), int(row['timestamp'].timestamp() * 1000)]  
-            for row in rows  
-        ]  
-        
-        target_name = f"{metric_name}"  
-        if node_id:  
-            target_name += f" ({node_id})"  
-        
-        return [{  
-            "target": target_name,  
-            "datapoints": datapoints  
-        }]  
-
-@app.get("/grafana/table/latest")  
-async def grafana_latest_readings(  
-    node_id: Optional[str] = None,  
-    limit: int = 100  
-):  
-    """  
-    Latest sensor readings in table format for Grafana  
-    """  
-    async with pool.acquire() as conn:  
-        if node_id:  
-            rows = await conn.fetch("""  
-                SELECT timestamp, node_id, device_id, metric_name, metric_value  
-                FROM sensor_data  
-                WHERE node_id = $1  
-                ORDER BY timestamp DESC  
-                LIMIT $2  
-            """, node_id, limit)  
-        else:  
-            rows = await conn.fetch("""  
-                SELECT timestamp, node_id, device_id, metric_name, metric_value  
-                FROM sensor_data  
-                ORDER BY timestamp DESC  
-                LIMIT $1  
-            """, limit)  
-        
-        return {  
-            "columns": [  
-                {"text": "Timestamp", "type": "time"},  
-                {"text": "Node ID", "type": "string"},  
-                {"text": "Device ID", "type": "string"},  
-                {"text": "Metric Name", "type": "string"},  
-                {"text": "Value", "type": "number"}  
-            ],  
-            "rows": [  
-                [  
-                    int(row['timestamp'].timestamp() * 1000),  
-                    row['node_id'],  
-                    row['device_id'],  
-                    row['metric_name'],  
-                    float(row['metric_value'])  
-                ]  
-                for row in rows  
-            ]  
-        }  
-
-@app.get("/grafana/metrics/available")  
-async def grafana_available_metrics():  
-    """  
-    Returns available metrics for Grafana variable queries  
-    """  
-    async with pool.acquire() as conn:  
-        # Get unique metric names from sensor_data  
-        sensor_metrics = await conn.fetch("""  
-            SELECT DISTINCT metric_name   
-            FROM sensor_data  
-            ORDER BY metric_name  
+        # Check which column exists (value or status)  
+        columns = await conn.fetch(f"""  
+            SELECT column_name   
+            FROM table_columns('{safe_table_name}')  
         """)  
+        column_names = [row['column_name'] for row in columns]  
         
-        # Get unique metric names from node_data  
-        node_metrics = await conn.fetch("""  
-            SELECT DISTINCT metric_name   
-            FROM node_data  
-            ORDER BY metric_name  
-        """)  
+        value_column = 'value' if 'value' in column_names else 'status'  
         
-        return {  
-            "sensor_metrics": [row['metric_name'] for row in sensor_metrics],  
-            "node_metrics": [row['metric_name'] for row in node_metrics]  
-        }  
-
-@app.get("/grafana/nodes/available")  
-async def grafana_available_nodes():  
-    """  
-    Returns available node IDs for Grafana variable queries  
-    """  
-    async with pool.acquire() as conn:  
-        nodes = await conn.fetch("""  
-            SELECT DISTINCT node_id   
-            FROM sensor_data  
-            ORDER BY node_id  
-        """)  
-        
-        return [row['node_id'] for row in nodes]  
-
-@app.get("/grafana/devices/available")  
-async def grafana_available_devices(node_id: Optional[str] = None):  
-    """  
-    Returns available device IDs for Grafana variable queries  
-    """  
-    async with pool.acquire() as conn:  
-        if node_id:  
-            devices = await conn.fetch("""  
-                SELECT DISTINCT device_id   
-                FROM sensor_data  
-                WHERE node_id = $1  
-                ORDER BY device_id  
-            """, node_id)  
-        else:  
-            devices = await conn.fetch("""  
-                SELECT DISTINCT device_id   
-                FROM sensor_data  
-                ORDER BY device_id  
-            """)  
-        
-        return [row['device_id'] for row in devices if row['device_id']]  
-
-@app.get("/grafana/alarms/timeseries")  
-async def grafana_alarms_timeseries(  
-    from_ms: Optional[int] = Query(None, alias="from"),  
-    to_ms: Optional[int] = Query(None, alias="to")  
-):  
-    """  
-    Alarm count over time for Grafana  
-    """  
-    if from_ms and to_ms:  
-        from_time = datetime.fromtimestamp(from_ms / 1000, tz=timezone.utc)  
-        to_time = datetime.fromtimestamp(to_ms / 1000, tz=timezone.utc)  
-    else:  
-        to_time = datetime.now(timezone.utc)  
-        from_time = to_time - timedelta(hours=24)  
-    
-    async with pool.acquire() as conn:  
-        rows = await conn.fetch("""  
-            SELECT   
-                timestamp,  
-                COUNT(*) as alarm_count  
-            FROM node_data  
-            WHERE is_alarm = true  
-            AND timestamp >= $1  
+        # Build query  
+        query = f"""  
+            SELECT timestamp, {value_column}, node_name, device_name  
+            FROM {safe_table_name}  
+            WHERE timestamp >= $1  
             AND timestamp <= $2  
-            GROUP BY timestamp  
-            ORDER BY timestamp  
-        """, from_time, to_time)  
+        """  
+        params = [from_time, to_time]  
         
-        datapoints = [  
-            [int(row['alarm_count']), int(row['timestamp'].timestamp() * 1000)]  
-            for row in rows  
-        ]  
+        if node_name:  
+            query += f" AND node_name = ${len(params) + 1}"  
+            params.append(node_name)  
+        if device_name:  
+            query += f" AND device_name = ${len(params) + 1}"  
+            params.append(device_name)  
         
-        return [{  
-            "target": "Alarms",  
-            "datapoints": datapoints  
-        }]  
+        query += " ORDER BY timestamp"  
+        
+        rows = await conn.fetch(query, *params)  
+        
+        # Group by node_name and device_name to create multiple series  
+        series_data = {}  
+        for row in rows:  
+            key = f"{row['node_name']}/{row['device_name']}"  
+            if key not in series_data:  
+                series_data[key] = []  
+            
+            # Handle both numeric and string values  
+            try:  
+                value = float(row[value_column])  
+            except (ValueError, TypeError):  
+                # For boolean or string values, convert to 1/0  
+                value = 1 if row[value_column] else 0  
+            
+            timestamp_ms = int(row['timestamp'].timestamp() * 1000)  
+            series_data[key].append([value, timestamp_ms])  
+        
+        # Format for Grafana  
+        result = []  
+        for series_name, datapoints in series_data.items():  
+            result.append({  
+                "target": f"{safe_table_name} - {series_name}",  
+                "datapoints": datapoints  
+            })  
+        
+        return result  
+
+@app.get("/grafana/current/{table_name}")  
+async def grafana_current_value(table_name: str):  
+    """  
+    Get the latest value from a specific table  
+    Perfect for stat/gauge panels  
+    """  
+    safe_table_name = re.sub(r'[^a-z0-9_]', '', table_name.lower())  
+    
+    async with pool.acquire() as conn:  
+        # Check if table exists  
+        exists = await conn.fetchval("""  
+            SELECT COUNT(*) FROM tables() WHERE table_name = $1  
+        """, safe_table_name)  
+        
+        if exists == 0:  
+            raise HTTPException(status_code=404, detail=f"Table '{safe_table_name}' not found")  
+        
+        # Check which column exists  
+        columns = await conn.fetch(f"""  
+            SELECT column_name   
+            FROM table_columns('{safe_table_name}')  
+        """)  
+        column_names = [row['column_name'] for row in columns]  
+        value_column = 'value' if 'value' in column_names else 'status'  
+        
+        # Get latest value  
+        row = await conn.fetchrow(f"""  
+            SELECT timestamp, {value_column}, node_name, device_name  
+            FROM {safe_table_name}  
+            ORDER BY timestamp DESC  
+            LIMIT 1  
+        """)  
+        
+        if not row:  
+            return {"value": None}  
+        
+        # Try to convert to float  
+        try:  
+            value = float(row[value_column])  
+        except (ValueError, TypeError):  
+            value = 1 if row[value_column] else 0  
+        
+        return {  
+            "value": value,  
+            "timestamp": int(row['timestamp'].timestamp() * 1000),  
+            "node_name": row['node_name'],  
+            "device_name": row['device_name']  
+        }  
+
+@app.get("/grafana/table/all_latest")  
+async def grafana_all_latest_values(limit: int = 100):  
+    """  
+    Get latest values from ALL tables  
+    Good for overview table  
+    """  
+    async with pool.acquire() as conn:  
+        # Get all tables  
+        tables = await conn.fetch("""  
+            SELECT table_name   
+            FROM tables()   
+            WHERE table_name NOT IN ('sys.column_versions_purge_log', 'telemetry', 'telemetry_config')  
+            ORDER BY table_name  
+        """)  
+        
+        all_data = []  
+        
+        for table in tables:  
+            table_name = table['table_name']  
+            try:  
+                # Check which column exists  
+                columns = await conn.fetch(f"""  
+                    SELECT column_name   
+                    FROM table_columns('{table_name}')  
+                """)  
+                column_names = [row['column_name'] for row in columns]  
+                value_column = 'value' if 'value' in column_names else 'status'  
+                
+                # Get latest value  
+                row = await conn.fetchrow(f"""  
+                    SELECT timestamp, {value_column}, node_name, device_name  
+                    FROM {table_name}  
+                    ORDER BY timestamp DESC  
+                    LIMIT 1  
+                """)  
+                
+                if row:  
+                    all_data.append({  
+                        "metric": table_name,  
+                        "value": row[value_column],  
+                        "node": row['node_name'],  
+                        "device": row['device_name'],  
+                        "timestamp": row['timestamp'].isoformat()  
+                    })  
+            except Exception as e:  
+                print(f"Error reading table {table_name}: {e}")  
+                continue  
+        
+        return all_data[:limit]  
+
+@app.get("/grafana/stats")  
+async def grafana_system_stats():  
+    """  
+    System statistics for stat panels  
+    """  
+    async with pool.acquire() as conn:  
+        # Count tables (metrics)  
+        tables = await conn.fetch("""  
+            SELECT COUNT(*) as count  
+            FROM tables()   
+            WHERE table_name NOT IN ('sys.column_versions_purge_log', 'telemetry', 'telemetry_config')  
+        """)  
+        
+        # Get unique nodes  
+        all_tables = await conn.fetch("""  
+            SELECT table_name   
+            FROM tables()   
+            WHERE table_name NOT IN ('sys.column_versions_purge_log', 'telemetry', 'telemetry_config')  
+        """)  
+        
+        all_nodes = set()  
+        all_devices = set()  
+        total_datapoints = 0  
+        
+        for table in all_tables:  
+            table_name = table['table_name']  
+            try:  
+                nodes = await conn.fetch(f"SELECT DISTINCT node_name FROM {table_name}")  
+                all_nodes.update([row['node_name'] for row in nodes])  
+                
+                devices = await conn.fetch(f"SELECT DISTINCT device_name FROM {table_name}")  
+                all_devices.update([row['device_name'] for row in devices])  
+                
+                count = await conn.fetchval(f"""  
+                    SELECT COUNT(*)   
+                    FROM {table_name}  
+                    WHERE timestamp >= dateadd('h', -1, now())  
+                """)  
+                total_datapoints += count or 0  
+            except:  
+                continue  
+        
+        return {  
+            "total_metrics": tables[0]['count'],  
+            "active_nodes": len(all_nodes),  
+            "active_devices": len(all_devices),  
+            "datapoints_last_hour": total_datapoints  
+        }  
