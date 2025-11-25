@@ -322,7 +322,7 @@ async def get_statistics():
             "tables": [dict(row)['table_name'] for row in all_tables]
         }
 
-# ==================== GRAFANA ENDPOINTS (CORRECTED) ====================  
+# ==================== GRAFANA ENDPOINTS ====================  
 
 @app.get("/grafana/tables/list")  
 async def grafana_list_tables():  
@@ -444,7 +444,7 @@ async def grafana_timeseries(
             SELECT timestamp, {value_column}, node_name, device_name  
             FROM {safe_table_name}  
             WHERE timestamp >= $1  
-            AND timestamp &lt;= $3   
+            AND timestamp <= $2  
         """  
         params = [from_time, to_time]  
         
