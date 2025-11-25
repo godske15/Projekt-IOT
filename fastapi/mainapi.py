@@ -297,7 +297,7 @@ async def query_table(table_name: str, hours: int = 24, limit: int = 100):
             # Query tabellen
             rows = await conn.fetch(f"""
                 SELECT * FROM {safe_table_name}
-                WHERE timestamp >= dateadd('h', -{hours}, now())
+                WHERE timestamp &gt;= dateadd('h', -{hours}, now())  
                 ORDER BY timestamp DESC
                 LIMIT {limit}
             """)
@@ -444,7 +444,7 @@ async def grafana_timeseries(
             SELECT timestamp, {value_column}, node_name, device_name  
             FROM {safe_table_name}  
             WHERE timestamp >= $1  
-            AND timestamp <= $2  
+            AND timestamp &lt;= $3   
         """  
         params = [from_time, to_time]  
         
