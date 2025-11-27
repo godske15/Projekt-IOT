@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.10)
-project(IoT_Tests LANGUAGES CXX) // Project name and cxx = c++
+project(IoT_Tests LANGUAGES CXX) # Project name and cxx = c++ 
 
-set(CMAKE_CXX_STANDARD 17) // Using the c++ 17 standard
-set(CMAKE_CXX_STANDARD_REQUIRED ON) // Always use this standard. Don't fall back to older versions
+set(CMAKE_CXX_STANDARD 17) # Using the c++ 17 standard
+set(CMAKE_CXX_STANDARD_REQUIRED ON) # Always use this standard. Don't fall back to older versions
 
 # Make executable. A program called test, and then a list of the file names to be executed.
 add_executable(test

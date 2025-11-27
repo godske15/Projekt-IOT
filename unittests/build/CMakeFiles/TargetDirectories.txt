@@ -1,0 +1,3 @@
+/home/thorstein/Projekt-IOT/unittests/build/CMakeFiles/test.dir
+/home/thorstein/Projekt-IOT/unittests/build/CMakeFiles/edit_cache.dir
+/home/thorstein/Projekt-IOT/unittests/build/CMakeFiles/rebuild_cache.dir

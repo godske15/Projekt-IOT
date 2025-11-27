@@ -3,20 +3,25 @@
 #include <libpq-fe.h>
 #include <cstdlib>
 #include <string>
+#include <chrono>
+#include <iostream>
 
-// ======================================================================================================== //
-// ================================ Flags to use when compiling in terminal =============================== //
-// g++ gtest.cpp -I/usr/include/postgresql -lpaho-mqttpp3 -lpaho-mqtt3as -lpq -lgtest -lgtest_main -pthread //
-// ======================================================================================================== //
+// ======================================================================= //
+//  Flags to compile manually:
+//
+//  g++ gtest.cpp -I/usr/include/postgresql \
+//      -lpaho-mqttpp3 -lpaho-mqtt3as -lpq -lgtest -lgtest_main -pthread
+// ======================================================================= //
 
-bool publish(std::string message){
+bool publish(std::string message) {
     const std::string SERVER_ADDRESS("tcp://localhost:1883");
     const std::string CLIENT_ID("Publisher");
     const std::string TOPIC("PublishTest");
+
     mqtt::async_client client(SERVER_ADDRESS, CLIENT_ID);
     mqtt::connect_options connOpts;
-    connOpts.set_user_name("OlimexPublisher");
-    connOpts.set_password("PublishingEveryday")
+    connOpts.set_user_name("OlimexPublish");
+    connOpts.set_password("PublishingEveryday");
     connOpts.set_clean_session(true);
 
     try {
@@ -25,7 +30,7 @@ bool publish(std::string message){
         client.disconnect()->wait();
         return true;
     }
-    catch (...){
+    catch (...) {
         return false;
     }
 }
@@ -36,9 +41,10 @@ bool dbConnect() {
     if (!host) host = "127.0.0.1";
     if (!port) port = "8812";
 
-    std::string conninfo = "host=" + std::string(host) +
-                           " port=" + std::string(port) +
-                           " user=admin password=quest dbname=qdb";
+    std::string conninfo =
+        "host=" + std::string(host) +
+        " port=" + std::string(port) +
+        " user=admin password=quest dbname=qdb";
 
     PGconn* conn = PQconnectdb(conninfo.c_str());
 
@@ -51,63 +57,93 @@ bool dbConnect() {
     return true;
 }
 
-bool fetchSensorData(int hours = 24, int limit = 100, const std::string% device_id = ""){
+/**
+ * Fetch data from a dynamically created table such as:
+ *    indoor_temperature
+ *
+ * FastAPI ingestion ensures these tables exist.
+ */
+bool fetchTableData(const std::string& table_name,
+                    int hours = 24,
+                    int limit = 100,
+                    const std::string& device_id = "")
+{
     const char* host = std::getenv("QUESTDB_HOST");
     const char* port = std::getenv("QUESTDB_PORT");
     if (!host) host = "127.0.0.1";
     if (!port) port = "8812";
 
-    std::string conninfo = "host=" + std::string(host) +
-                           " port=" + std::string(port) +
-                           " user=admin password=quest dbname=qdb";
+    std::string conninfo =
+        "host=" + std::string(host) +
+        " port=" + std::string(port) +
+        " user=admin password=quest dbname=qdb";
 
     PGconn* conn = PQconnectdb(conninfo.c_str());
-
     if (PQstatus(conn) != CONNECTION_OK) {
+        std::cerr << "Connection failed: " << PQerrorMessage(conn) << "\n";
         PQfinish(conn);
         return false;
     }
 
+    // -------------------------------------------------------------------
+    // Compute timestamp cutoff (QuestDB expects seconds since epoch)
+    // -------------------------------------------------------------------
+    using namespace std::chrono;
+    auto now = system_clock::now();
+    auto from_time = now - hours * 1h;
+    std::time_t from_unix = system_clock::to_time_t(from_time);
+
+    // -------------------------------------------------------------------
+    // Build query with or without device_id filter
+    // -------------------------------------------------------------------
     PGresult* res = nullptr;
+
     if (!device_id.empty()) {
-        // Query with device_id filter
+        const std::string time_s = std::to_string(from_unix);
+        const std::string limit_s = std::to_string(limit);
+
         const char* paramValues[3] = {
-            std::to_string(hours).c_str(),
-            std::to_string(limit).c_str(),
+            time_s.c_str(),
+            limit_s.c_str(),
             device_id.c_str()
         };
-        res = PQexecParams(conn,
-            "SELECT timestamp, node_id, device_id, metric_name, metric_value "
-            "FROM sensor_data "
-            "WHERE timestamp >= dateadd('h', -$1, now()) "
-            "AND device_id = $3 "
+
+        std::string sql =
+            "SELECT timestamp, node_name, device_name, value "
+            "FROM " + table_name + " "
+            "WHERE timestamp >= to_timestamp($1) "
+            "AND device_name = $3 "
             "ORDER BY timestamp DESC "
-            "LIMIT $2",
-            3,          // number of params
-            nullptr,    // param types
+            "LIMIT $2";
+
+        res = PQexecParams(
+            conn, sql.c_str(),
+            3, nullptr,
             paramValues,
-            nullptr,    // param lengths
-            nullptr,    // param formats
-            0           // text results
+            nullptr, nullptr, 0
         );
-    } else {
-        // Query without device_id
+    }
+    else {
+        const std::string time_s = std::to_string(from_unix);
+        const std::string limit_s = std::to_string(limit);
+
         const char* paramValues[2] = {
-            std::to_string(hours).c_str(),
-            std::to_string(limit).c_str()
+            time_s.c_str(),
+            limit_s.c_str()
         };
-        res = PQexecParams(conn,
-            "SELECT timestamp, node_id, device_id, metric_name, metric_value "
-            "FROM sensor_data "
-            "WHERE timestamp >= dateadd('h', -$1, now()) "
+
+        std::string sql =
+            "SELECT timestamp, node_name, device_name, value "
+            "FROM " + table_name + " "
+            "WHERE timestamp >= to_timestamp($1) "
             "ORDER BY timestamp DESC "
-            "LIMIT $2",
-            2,          // number of params
-            nullptr,
+            "LIMIT $2";
+
+        res = PQexecParams(
+            conn, sql.c_str(),
+            2, nullptr,
             paramValues,
-            nullptr,
-            nullptr,
-            0
+            nullptr, nullptr, 0
         );
     }
 
@@ -119,12 +155,11 @@ bool fetchSensorData(int hours = 24, int limit = 100, const std::string% device_
     }
 
     int rows = PQntuples(res);
-    std::cout << "Fetched " << rows << " rows\n";
+    std::cout << "Fetched " << rows << " rows from '" << table_name << "'\n";
 
-    // Optional: iterate and print the first row
     if (rows > 0) {
         std::cout << "First row: ";
-        for (int col = 0; col < PQnfields(res); ++col) {
+        for (int col = 0; col < PQnfields(res); col++) {
             std::cout << PQgetvalue(res, 0, col) << " ";
         }
         std::cout << "\n";
@@ -135,42 +170,33 @@ bool fetchSensorData(int hours = 24, int limit = 100, const std::string% device_
     return true;
 }
 
-TEST(FastAPITest, QuerySensorData) {
-    EXPECT_TRUE(fetchSensorData());                // default hours=24, limit=100
-    EXPECT_TRUE(fetchSensorData(12, 50, "dev123")); // example with device_id
+// ======================================================================= //
+//                              UNIT TESTS
+// ======================================================================= //
+
+TEST(FastAPITest, QueryIndoorTemperatureDefault)
+{
+    // matches the table your FastAPI creates from "Inputs/Indoor_temperature"
+    EXPECT_TRUE(fetchTableData("indoor_temperature"));
 }
 
-TEST(MQTTTest, PublishMessageTest){
+TEST(FastAPITest, QueryIndoorTemperatureWithDeviceID)
+{
+    EXPECT_TRUE(fetchTableData("indoor_temperature", 24, 100, "VentSensor1"));
+}
+
+TEST(MQTTTest, PublishMessageTest)
+{
     EXPECT_TRUE(publish("Hello World."));
 }
 
-TEST(FastAPITest, TestAPIToDBConnection) {
+TEST(FastAPITest, TestAPIToDBConnection)
+{
     EXPECT_TRUE(dbConnect());
 }
 
-// bool dbConnect(){
-//     global pool;
-
-//     const char* questdb_host = os.getenv('QUESTDB_HOST', '127.0.0.1');
-//     const char* questdb_port = int(os.getenv('QUESTDB_PORT', '8812'));
-
-//     try {
-//         pool = await asyncpg.create_pool(
-//             host=questdb_host,
-//             port=questdb_port,
-//             user='admin',
-//             password='quest',
-//             database='qdb',
-//             min_size=5,
-//             max_size=20
-//         )
-//         return true;
-//     }
-//     catch (...){
-//         return false;
-//     }
-// }
-
-// TEST(FastAPITest, TestAPIToDBConnection){
-//     EXPECT_TRUE(dbConnect());
-// }
+int main(int argc, char** argv)
+{
+    ::testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
+}

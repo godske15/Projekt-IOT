@@ -1,0 +1,1 @@
+/usr/bin/c++ CMakeFiles/test.dir/gtest.cpp.o -o test  -lpaho-mqttpp3 -lpaho-mqtt3as -lpq -lgtest -lgtest_main -lpthread 
