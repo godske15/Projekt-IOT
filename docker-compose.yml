@@ -131,6 +131,7 @@ volumes:
     external: true
   grafana-storage:
   mqtt-logs:
+  spdlog:
 
 networks:
   iot-net:

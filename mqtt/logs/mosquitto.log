@@ -1,64 +1,101 @@
-1764232284: Sending PINGRESP to Subscriber
-1764232298: Client Subscriber closed its connection.
-1764232304: mosquitto version 2.0.22 starting
-1764232304: Config loaded from /mosquitto/config/mosquitto.conf.
-1764232304: Warning: File mosquitto/config/pwfile.txt has world readable permissions. Future versions will refuse to load this file.
+1764233162: mosquitto version 2.0.22 terminating
+1764233162: Saving in-memory database to /mosquitto/data//mosquitto.db.
+1764246208: mosquitto version 2.0.22 starting
+1764246208: Config loaded from /mosquitto/config/mosquitto.conf.
+1764246208: Warning: File mosquitto/config/pwfile.txt has world readable permissions. Future versions will refuse to load this file.
 To fix this, use `chmod 0700 mosquitto/config/pwfile.txt`.
-1764232304: Warning: File mosquitto/config/aclfile has world readable permissions. Future versions will refuse to load this file.
+1764246208: Warning: File mosquitto/config/aclfile has world readable permissions. Future versions will refuse to load this file.
 To fix this, use `chmod 0700 mosquitto/config/aclfile`.
-1764232304: Opening ipv4 listen socket on port 1883.
-1764232304: mosquitto version 2.0.22 running
-1764232316: New connection from 172.18.0.6:37030 on port 1883.
-1764232316: New client connected from 172.18.0.6:37030 as Subscriber (p2, c1, k60, u'OlimexSubscribe').
-1764232316: No will message specified.
-1764232316: Sending CONNACK to Subscriber (0, 0)
-1764232316: Received SUBSCRIBE from Subscriber
-1764232316: 	spBv1.0/UCL-SEE-A/NBIRTH/TLab (QoS 0)
-1764232316: Subscriber 0 spBv1.0/UCL-SEE-A/NBIRTH/TLab
-1764232316: Sending SUBACK to Subscriber
-1764232316: Received SUBSCRIBE from Subscriber
-1764232316: 	spBv1.0/UCL-SEE-A/DDATA/TLab/VentSensor1 (QoS 0)
-1764232316: Subscriber 0 spBv1.0/UCL-SEE-A/DDATA/TLab/VentSensor1
-1764232316: Sending SUBACK to Subscriber
-1764232316: Received SUBSCRIBE from Subscriber
-1764232316: 	spBv1.0/UCL-SEE-A/NDEATH/TLab (QoS 0)
-1764232316: Subscriber 0 spBv1.0/UCL-SEE-A/NDEATH/TLab
-1764232316: Sending SUBACK to Subscriber
-1764232316: Received SUBSCRIBE from Subscriber
-1764232316: 	spBv1.0/+/NDATA/+ (QoS 0)
-1764232316: Subscriber 0 spBv1.0/+/NDATA/+
-1764232316: Sending SUBACK to Subscriber
-1764232316: Received SUBSCRIBE from Subscriber
-1764232316: 	spBv1.0/+/NCMD/+ (QoS 0)
-1764232316: Subscriber 0 spBv1.0/+/NCMD/+
-1764232316: Sending SUBACK to Subscriber
-1764232316: Received SUBSCRIBE from Subscriber
-1764232316: 	spBv1.0/+/DCMD/+/+ (QoS 0)
-1764232316: Subscriber 0 spBv1.0/+/DCMD/+/+
-1764232316: Sending SUBACK to Subscriber
-1764232377: Received PINGREQ from Subscriber
-1764232377: Sending PINGRESP to Subscriber
-1764232437: Received PINGREQ from Subscriber
-1764232437: Sending PINGRESP to Subscriber
-1764232498: Received PINGREQ from Subscriber
-1764232498: Sending PINGRESP to Subscriber
-1764232558: Received PINGREQ from Subscriber
-1764232558: Sending PINGRESP to Subscriber
-1764232619: Received PINGREQ from Subscriber
-1764232619: Sending PINGRESP to Subscriber
-1764232679: Received PINGREQ from Subscriber
-1764232679: Sending PINGRESP to Subscriber
-1764232740: Received PINGREQ from Subscriber
-1764232740: Sending PINGRESP to Subscriber
-1764232801: Received PINGREQ from Subscriber
-1764232801: Sending PINGRESP to Subscriber
-1764232861: Received PINGREQ from Subscriber
-1764232861: Sending PINGRESP to Subscriber
-1764232922: Received PINGREQ from Subscriber
-1764232922: Sending PINGRESP to Subscriber
-1764232982: Received PINGREQ from Subscriber
-1764232982: Sending PINGRESP to Subscriber
-1764233043: Received PINGREQ from Subscriber
-1764233043: Sending PINGRESP to Subscriber
-1764233104: Received PINGREQ from Subscriber
-1764233104: Sending PINGRESP to Subscriber
+1764246208: Opening ipv4 listen socket on port 1883.
+1764246208: mosquitto version 2.0.22 running
+1764246220: New connection from 172.18.0.6:48286 on port 1883.
+1764246220: New client connected from 172.18.0.6:48286 as Subscriber (p2, c1, k60, u'OlimexSubscribe').
+1764246220: No will message specified.
+1764246220: Sending CONNACK to Subscriber (0, 0)
+1764246220: Received SUBSCRIBE from Subscriber
+1764246220: 	spBv1.0/UCL-SEE-A/NBIRTH/TLab (QoS 0)
+1764246220: Subscriber 0 spBv1.0/UCL-SEE-A/NBIRTH/TLab
+1764246220: Sending SUBACK to Subscriber
+1764246220: Received SUBSCRIBE from Subscriber
+1764246220: 	spBv1.0/UCL-SEE-A/DDATA/TLab/VentSensor1 (QoS 0)
+1764246220: Subscriber 0 spBv1.0/UCL-SEE-A/DDATA/TLab/VentSensor1
+1764246220: Sending SUBACK to Subscriber
+1764246220: Received SUBSCRIBE from Subscriber
+1764246220: 	spBv1.0/UCL-SEE-A/NDEATH/TLab (QoS 0)
+1764246220: Subscriber 0 spBv1.0/UCL-SEE-A/NDEATH/TLab
+1764246220: Sending SUBACK to Subscriber
+1764246220: Received SUBSCRIBE from Subscriber
+1764246220: 	spBv1.0/+/NDATA/+ (QoS 0)
+1764246220: Subscriber 0 spBv1.0/+/NDATA/+
+1764246220: Sending SUBACK to Subscriber
+1764246220: Received SUBSCRIBE from Subscriber
+1764246220: 	spBv1.0/+/NCMD/+ (QoS 0)
+1764246220: Subscriber 0 spBv1.0/+/NCMD/+
+1764246220: Sending SUBACK to Subscriber
+1764246220: Received SUBSCRIBE from Subscriber
+1764246220: 	spBv1.0/+/DCMD/+/+ (QoS 0)
+1764246220: Subscriber 0 spBv1.0/+/DCMD/+/+
+1764246220: Sending SUBACK to Subscriber
+1764246281: Received PINGREQ from Subscriber
+1764246281: Sending PINGRESP to Subscriber
+1764246341: Received PINGREQ from Subscriber
+1764246341: Sending PINGRESP to Subscriber
+1764246402: Received PINGREQ from Subscriber
+1764246402: Sending PINGRESP to Subscriber
+1764246463: Received PINGREQ from Subscriber
+1764246463: Sending PINGRESP to Subscriber
+1764246523: Received PINGREQ from Subscriber
+1764246523: Sending PINGRESP to Subscriber
+1764246584: Received PINGREQ from Subscriber
+1764246584: Sending PINGRESP to Subscriber
+1764246644: Received PINGREQ from Subscriber
+1764246644: Sending PINGRESP to Subscriber
+1764246705: Received PINGREQ from Subscriber
+1764246705: Sending PINGRESP to Subscriber
+1764246765: Received PINGREQ from Subscriber
+1764246765: Sending PINGRESP to Subscriber
+1764246827: Received PINGREQ from Subscriber
+1764246827: Sending PINGRESP to Subscriber
+1764246887: Received PINGREQ from Subscriber
+1764246887: Sending PINGRESP to Subscriber
+1764246948: Received PINGREQ from Subscriber
+1764246948: Sending PINGRESP to Subscriber
+1764247008: Received PINGREQ from Subscriber
+1764247008: Sending PINGRESP to Subscriber
+1764247069: Received PINGREQ from Subscriber
+1764247069: Sending PINGRESP to Subscriber
+1764247130: Received PINGREQ from Subscriber
+1764247130: Sending PINGRESP to Subscriber
+1764247191: Received PINGREQ from Subscriber
+1764247191: Sending PINGRESP to Subscriber
+1764247251: Received PINGREQ from Subscriber
+1764247251: Sending PINGRESP to Subscriber
+1764247312: Received PINGREQ from Subscriber
+1764247312: Sending PINGRESP to Subscriber
+1764247373: Received PINGREQ from Subscriber
+1764247373: Sending PINGRESP to Subscriber
+1764247433: Received PINGREQ from Subscriber
+1764247433: Sending PINGRESP to Subscriber
+1764247494: Received PINGREQ from Subscriber
+1764247494: Sending PINGRESP to Subscriber
+1764247554: Received PINGREQ from Subscriber
+1764247554: Sending PINGRESP to Subscriber
+1764247615: Received PINGREQ from Subscriber
+1764247615: Sending PINGRESP to Subscriber
+1764247675: Received PINGREQ from Subscriber
+1764247675: Sending PINGRESP to Subscriber
+1764247736: Received PINGREQ from Subscriber
+1764247736: Sending PINGRESP to Subscriber
+1764247797: Received PINGREQ from Subscriber
+1764247797: Sending PINGRESP to Subscriber
+1764247857: Received PINGREQ from Subscriber
+1764247857: Sending PINGRESP to Subscriber
+1764247918: Received PINGREQ from Subscriber
+1764247918: Sending PINGRESP to Subscriber
+1764247978: Received PINGREQ from Subscriber
+1764247978: Sending PINGRESP to Subscriber
+1764248010: Saving in-memory database to /mosquitto/data//mosquitto.db.
+1764248039: Received PINGREQ from Subscriber
+1764248039: Sending PINGRESP to Subscriber
+1764248100: Received PINGREQ from Subscriber
+1764248100: Sending PINGRESP to Subscriber
