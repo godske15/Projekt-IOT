@@ -15,6 +15,8 @@ bool publish(std::string message){
     const std::string TOPIC("PublishTest");
     mqtt::async_client client(SERVER_ADDRESS, CLIENT_ID);
     mqtt::connect_options connOpts;
+    connOpts.set_user_name("OlimexPublisher");
+    connOpts.set_password("PublishingEveryday")
     connOpts.set_clean_session(true);
 
     try {

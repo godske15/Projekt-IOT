@@ -1,62 +1,64 @@
-1764008423: Warning: File mosquitto/config/pwfile.txt has world readable permissions. Future versions will refuse to load this file.
+1764232284: Sending PINGRESP to Subscriber
+1764232298: Client Subscriber closed its connection.
+1764232304: mosquitto version 2.0.22 starting
+1764232304: Config loaded from /mosquitto/config/mosquitto.conf.
+1764232304: Warning: File mosquitto/config/pwfile.txt has world readable permissions. Future versions will refuse to load this file.
 To fix this, use `chmod 0700 mosquitto/config/pwfile.txt`.
-1764008423: Warning: File mosquitto/config/pwfile.txt owner is not mosquitto. Future versions will refuse to load this file.To fix this, use `chown mosquitto mosquitto/config/pwfile.txt`.
-1764008423: Warning: File mosquitto/config/pwfile.txt group is not mosquitto. Future versions will refuse to load this file.
-1764008423: Warning: File mosquitto/config/aclfile has world readable permissions. Future versions will refuse to load this file.
+1764232304: Warning: File mosquitto/config/aclfile has world readable permissions. Future versions will refuse to load this file.
 To fix this, use `chmod 0700 mosquitto/config/aclfile`.
-1764008423: Warning: File mosquitto/config/aclfile owner is not mosquitto. Future versions will refuse to load this file.To fix this, use `chown mosquitto mosquitto/config/aclfile`.
-1764008423: Warning: File mosquitto/config/aclfile group is not mosquitto. Future versions will refuse to load this file.
-1764008423: Opening ipv4 listen socket on port 1883.
-1764008423: mosquitto version 2.0.22 running
-1764008435: New connection from 172.19.0.6:42366 on port 1883.
-1764008435: New client connected from 172.19.0.6:42366 as Subscriber (p2, c1, k60, u'OlimexSubscribe').
-1764008435: No will message specified.
-1764008435: Sending CONNACK to Subscriber (0, 0)
-1764008435: Received SUBSCRIBE from Subscriber
-1764008435: 	spBv1.0/UCL-SEE-A/NBIRTH/TLab (QoS 0)
-1764008435: Subscriber 0 spBv1.0/UCL-SEE-A/NBIRTH/TLab
-1764008435: Sending SUBACK to Subscriber
-1764008435: Received SUBSCRIBE from Subscriber
-1764008435: 	spBv1.0/UCL-SEE-A/DDATA/TLab/VentSensor1 (QoS 0)
-1764008435: Subscriber 0 spBv1.0/UCL-SEE-A/DDATA/TLab/VentSensor1
-1764008435: Sending SUBACK to Subscriber
-1764008435: Received SUBSCRIBE from Subscriber
-1764008435: 	spBv1.0/UCL-SEE-A/NDEATH/TLab (QoS 0)
-1764008435: Subscriber 0 spBv1.0/UCL-SEE-A/NDEATH/TLab
-1764008435: Sending SUBACK to Subscriber
-1764008435: Received SUBSCRIBE from Subscriber
-1764008435: 	spBv1.0/+/NDATA/+ (QoS 0)
-1764008435: Subscriber 0 spBv1.0/+/NDATA/+
-1764008435: Sending SUBACK to Subscriber
-1764008435: Received SUBSCRIBE from Subscriber
-1764008435: 	spBv1.0/+/NCMD/+ (QoS 0)
-1764008435: Subscriber 0 spBv1.0/+/NCMD/+
-1764008435: Sending SUBACK to Subscriber
-1764008435: Received SUBSCRIBE from Subscriber
-1764008435: 	spBv1.0/+/DCMD/+/+ (QoS 0)
-1764008435: Subscriber 0 spBv1.0/+/DCMD/+/+
-1764008435: Sending SUBACK to Subscriber
-1764008495: Received PINGREQ from Subscriber
-1764008495: Sending PINGRESP to Subscriber
-1764008550: New connection from 172.19.0.1:33380 on port 1883.
-1764008550: New client connected from 172.19.0.1:33380 as auto-EFA6DD65-657A-3C22-D7B6-9EF16B40ED82 (p2, c1, k60, u'OlimexPublish').
-1764008550: No will message specified.
-1764008550: Sending CONNACK to auto-EFA6DD65-657A-3C22-D7B6-9EF16B40ED82 (0, 0)
-1764008550: Denied PUBLISH from auto-EFA6DD65-657A-3C22-D7B6-9EF16B40ED82 (d0, q0, r0, m0, 'spBv1.0/thorstein', ... (3 bytes))
-1764008550: Received DISCONNECT from auto-EFA6DD65-657A-3C22-D7B6-9EF16B40ED82
-1764008550: Client auto-EFA6DD65-657A-3C22-D7B6-9EF16B40ED82 disconnected.
-1764008556: Received PINGREQ from Subscriber
-1764008556: Sending PINGRESP to Subscriber
-1764008581: New connection from 172.19.0.1:41146 on port 1883.
-1764008581: New client connected from 172.19.0.1:41146 as auto-5B77E2B6-73FA-25CF-1497-B6624003B638 (p2, c1, k60, u'OlimexPublish').
-1764008581: No will message specified.
-1764008581: Sending CONNACK to auto-5B77E2B6-73FA-25CF-1497-B6624003B638 (0, 0)
-1764008581: Received PUBLISH from auto-5B77E2B6-73FA-25CF-1497-B6624003B638 (d0, q0, r0, m0, 'spBv1.0/UCL-SEE-A', ... (3 bytes))
-1764008581: Received DISCONNECT from auto-5B77E2B6-73FA-25CF-1497-B6624003B638
-1764008581: Client auto-5B77E2B6-73FA-25CF-1497-B6624003B638 disconnected.
-1764008617: Received PINGREQ from Subscriber
-1764008617: Sending PINGRESP to Subscriber
-1764008677: Received PINGREQ from Subscriber
-1764008677: Sending PINGRESP to Subscriber
-1764008738: Received PINGREQ from Subscriber
-1764008738: Sending PINGRESP to Subscriber
+1764232304: Opening ipv4 listen socket on port 1883.
+1764232304: mosquitto version 2.0.22 running
+1764232316: New connection from 172.18.0.6:37030 on port 1883.
+1764232316: New client connected from 172.18.0.6:37030 as Subscriber (p2, c1, k60, u'OlimexSubscribe').
+1764232316: No will message specified.
+1764232316: Sending CONNACK to Subscriber (0, 0)
+1764232316: Received SUBSCRIBE from Subscriber
+1764232316: 	spBv1.0/UCL-SEE-A/NBIRTH/TLab (QoS 0)
+1764232316: Subscriber 0 spBv1.0/UCL-SEE-A/NBIRTH/TLab
+1764232316: Sending SUBACK to Subscriber
+1764232316: Received SUBSCRIBE from Subscriber
+1764232316: 	spBv1.0/UCL-SEE-A/DDATA/TLab/VentSensor1 (QoS 0)
+1764232316: Subscriber 0 spBv1.0/UCL-SEE-A/DDATA/TLab/VentSensor1
+1764232316: Sending SUBACK to Subscriber
+1764232316: Received SUBSCRIBE from Subscriber
+1764232316: 	spBv1.0/UCL-SEE-A/NDEATH/TLab (QoS 0)
+1764232316: Subscriber 0 spBv1.0/UCL-SEE-A/NDEATH/TLab
+1764232316: Sending SUBACK to Subscriber
+1764232316: Received SUBSCRIBE from Subscriber
+1764232316: 	spBv1.0/+/NDATA/+ (QoS 0)
+1764232316: Subscriber 0 spBv1.0/+/NDATA/+
+1764232316: Sending SUBACK to Subscriber
+1764232316: Received SUBSCRIBE from Subscriber
+1764232316: 	spBv1.0/+/NCMD/+ (QoS 0)
+1764232316: Subscriber 0 spBv1.0/+/NCMD/+
+1764232316: Sending SUBACK to Subscriber
+1764232316: Received SUBSCRIBE from Subscriber
+1764232316: 	spBv1.0/+/DCMD/+/+ (QoS 0)
+1764232316: Subscriber 0 spBv1.0/+/DCMD/+/+
+1764232316: Sending SUBACK to Subscriber
+1764232377: Received PINGREQ from Subscriber
+1764232377: Sending PINGRESP to Subscriber
+1764232437: Received PINGREQ from Subscriber
+1764232437: Sending PINGRESP to Subscriber
+1764232498: Received PINGREQ from Subscriber
+1764232498: Sending PINGRESP to Subscriber
+1764232558: Received PINGREQ from Subscriber
+1764232558: Sending PINGRESP to Subscriber
+1764232619: Received PINGREQ from Subscriber
+1764232619: Sending PINGRESP to Subscriber
+1764232679: Received PINGREQ from Subscriber
+1764232679: Sending PINGRESP to Subscriber
+1764232740: Received PINGREQ from Subscriber
+1764232740: Sending PINGRESP to Subscriber
+1764232801: Received PINGREQ from Subscriber
+1764232801: Sending PINGRESP to Subscriber
+1764232861: Received PINGREQ from Subscriber
+1764232861: Sending PINGRESP to Subscriber
+1764232922: Received PINGREQ from Subscriber
+1764232922: Sending PINGRESP to Subscriber
+1764232982: Received PINGREQ from Subscriber
+1764232982: Sending PINGRESP to Subscriber
+1764233043: Received PINGREQ from Subscriber
+1764233043: Sending PINGRESP to Subscriber
+1764233104: Received PINGREQ from Subscriber
+1764233104: Sending PINGRESP to Subscriber
