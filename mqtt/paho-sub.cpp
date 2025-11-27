@@ -13,11 +13,7 @@
 #include "spdlogSecurity.h"
 #include <curl/curl.h>
 #include <nlohmann/json.hpp>
-#include <cstdlib>
 
-void time_sync() {
-    system("ntpdate -u pool.ntp.org");
-}
 
 const std::string SERVER_ADDRESS = "tcp://mqtt-broker:1883";
 const std::string CLIENT_ID = "Subscriber";
