@@ -9,6 +9,8 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 import re
 import traceback
+import subprocess
+
 
 os.environ['TZ'] = 'UTC'
 time.tzset()
@@ -494,528 +496,182 @@ async def debug_table_count(table_name: str):
                 "traceback": traceback.format_exc()
             }
 
-# ==================== GRAFANA ENDPOINTS ====================  
+# ==================== CONTAINER LOGS ENDPOINTS ====================
 
-@app.get("/grafana/tables/list")  
-async def grafana_list_tables():  
-    """List all available tables (metrics) for Grafana"""  
-    async with pool.acquire() as conn:  
-        rows = await conn.fetch("""  
-            SELECT table_name   
-            FROM tables   
-            WHERE table_name NOT IN ('sys.column_versions_purge_log', 'telemetry', 'telemetry_config')  
-            ORDER BY table_name  
-        """)  
-        return [row['table_name'] for row in rows]  
+@app.get("/logs/containers")
+async def list_containers():
+    """List all running containers"""
+    try:
+        result = subprocess.run(
+            ["docker", "ps", "--format", "{{.Names}}"],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+        containers = [name.strip() for name in result.stdout.split('\n') if name.strip()]
+        return {"containers": containers}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/grafana/nodes/list")  
-async def grafana_list_nodes():  
-    """List all available node names across all tables"""  
-    async with pool.acquire() as conn:  
-        # Get all tables first  
-        tables = await conn.fetch("""  
-            SELECT table_name   
-            FROM tables   
-            WHERE table_name NOT IN ('sys.column_versions_purge_log', 'telemetry', 'telemetry_config')  
-        """)  
-        
-        all_nodes = set()  
-        for table in tables:  
-            table_name = table['table_name']
-            try:  
-                nodes = await conn.fetch(f"""  
-                    SELECT DISTINCT node_name   
-                    FROM {table_name}  
-                """)  
-                all_nodes.update([row['node_name'] for row in nodes])  
-            except:  
-                continue  
-        
-        return sorted(list(all_nodes))  
 
-@app.get("/grafana/devices/list")  
-async def grafana_list_devices(node_name: Optional[str] = None):  
-    """List all available device names"""  
-    async with pool.acquire() as conn:  
-        tables = await conn.fetch("""  
-            SELECT table_name   
-            FROM tables   
-            WHERE table_name NOT IN ('sys.column_versions_purge_log', 'telemetry', 'telemetry_config')  
-        """)  
-        
-        all_devices = set()  
-        for table in tables:  
-            table_name = table['table_name']
-            try:  
-                if node_name:  
-                    devices = await conn.fetch(f"""  
-                        SELECT DISTINCT device_name   
-                        FROM {table_name}  
-                        WHERE node_name = $1  
-                    """, node_name)  
-                else:  
-                    devices = await conn.fetch(f"""  
-                        SELECT DISTINCT device_name   
-                        FROM {table_name}  
-                    """)  
-                all_devices.update([row['device_name'] for row in devices])  
-            except:  
-                continue  
-        
-        return sorted(list(all_devices))  
-
-@app.get("/grafana/timeseries/{table_name}")  
-async def grafana_timeseries(  
-    table_name: str,  
-    node_name: Optional[str] = None,  
-    device_name: Optional[str] = None,  
-    from_ms: Optional[int] = Query(None, alias="from"),  
-    to_ms: Optional[int] = Query(None, alias="to")  
-):  
-    """
-    Get time series data from a specific dynamic table
-    Works with both 'value' (numeric) and 'status' (string) columns
-    """  
-    safe_table_name = re.sub(r'[^a-z0-9_]', '', table_name.lower())  
-    
-    # Calculate time range  
-    if from_ms and to_ms:  
-        from_time = datetime.fromtimestamp(from_ms / 1000, tz=timezone.utc)  
-        to_time = datetime.fromtimestamp(to_ms / 1000, tz=timezone.utc)  
-    else:  
-        to_time = datetime.now(timezone.utc)  
-        from_time = to_time - timedelta(hours=24)  # Udvid til 24 timer som default
-    
-    async with pool.acquire() as conn:  
-        try:
-            # Check if table exists
-            exists = await conn.fetchval("""  
-                SELECT COUNT(*) FROM tables WHERE table_name = $1  
-            """, safe_table_name)  
-            
-            if exists == 0:  
-                raise HTTPException(status_code=404, detail=f"Table '{safe_table_name}' not found")  
-            
-            # Check which column exists
-            columns = await conn.fetch(f"""  
-                SELECT "column"   
-                FROM table_columns('{safe_table_name}')  
-            """)  
-            column_names = [row['column'] for row in columns]  
-            
-            if 'value' not in column_names and 'status' not in column_names:
-                raise HTTPException(status_code=400, detail=f"Table has neither 'value' nor 'status' column. Columns: {column_names}")
-            
-            value_column = 'value' if 'value' in column_names else 'status'
-            is_numeric = value_column == 'value'
-            
-            # Build query
-            query = f"""  
-                SELECT timestamp, {value_column}, node_name, device_name  
-                FROM {safe_table_name}  
-            """
-            params = []
-            where_clauses = []
-            
-            # Tjek om der er data overhovedet
-            total_count = await conn.fetchval(f"SELECT COUNT(*) FROM {safe_table_name}")
-            if total_count == 0:
-                return {"error": f"Table '{safe_table_name}' has no data", "total_rows": 0}
-            
-            # Få timestamp range fra tabellen
-            oldest = await conn.fetchrow(f"SELECT timestamp FROM {safe_table_name} ORDER BY timestamp ASC LIMIT 1")
-            newest = await conn.fetchrow(f"SELECT timestamp FROM {safe_table_name} ORDER BY timestamp DESC LIMIT 1")
-            
-            # Brug time range hvis angivet
-            if from_time and to_time:
-                where_clauses.append(f"timestamp >= ${len(params) + 1}")
-                params.append(from_time)
-                where_clauses.append(f"timestamp <= ${len(params) + 1}")
-                params.append(to_time)
-            
-            if node_name:  
-                where_clauses.append(f"node_name = ${len(params) + 1}")
-                params.append(node_name)  
-            if device_name:  
-                where_clauses.append(f"device_name = ${len(params) + 1}")
-                params.append(device_name)
-            
-            if where_clauses:
-                query += " WHERE " + " AND ".join(where_clauses)
-            
-            query += " ORDER BY timestamp"  
-            
-            rows = await conn.fetch(query, *params)
-            
-            if len(rows) == 0:
-                return {
-                    "error": "No data in time range",
-                    "total_rows": total_count,
-                    "oldest": oldest['timestamp'].isoformat() if oldest else None,
-                    "newest": newest['timestamp'].isoformat() if newest else None,
-                    "requested_from": from_time.isoformat() if from_time else None,
-                    "requested_to": to_time.isoformat() if to_time else None
-                }
-            
-            # For STRING columns, return as simple array
-            if not is_numeric:
-                result = []
-                for row in rows:
-                    result.append({
-                        "timestamp": int(row['timestamp'].timestamp() * 1000),
-                        "value": str(row[value_column]),
-                        "node_name": row['node_name'],
-                        "device_name": row['device_name']
-                    })
-                return result
-            
-            # For numeric columns, format for Grafana timeseries
-            series_data = {}  
-            for row in rows:  
-                key = f"{row['node_name']}/{row['device_name']}"  
-                if key not in series_data:  
-                    series_data[key] = []  
-                
-                try:  
-                    value = float(row[value_column])  
-                except (ValueError, TypeError):  
-                    value = 1 if row[value_column] else 0  
-                
-                timestamp_ms = int(row['timestamp'].timestamp() * 1000)  
-                series_data[key].append([value, timestamp_ms])  
-            
-            result = []  
-            for series_name, datapoints in series_data.items():  
-                result.append({  
-                    "target": f"{safe_table_name} - {series_name}",  
-                    "datapoints": datapoints  
-                })  
-            
-            return result
-            
-        except HTTPException:
-            raise
-        except Exception as e:
-            return {
-                "error": str(e),
-                "error_type": type(e).__name__,
-                "traceback": traceback.format_exc()
-            }
-
-@app.get("/grafana/table/{table_name}")  
-async def grafana_table_data(  
-    table_name: str,  
-    node_name: Optional[str] = None,  
-    device_name: Optional[str] = None,  
-    from_ms: Optional[int] = Query(None, alias="from"),  
-    to_ms: Optional[int] = Query(None, alias="to"),
-    limit: int = 1000
-):  
-    """
-    Get table data for Grafana Table panel
-    Good for STRING columns like run_mode, alarm_status
-    """  
-    safe_table_name = re.sub(r'[^a-z0-9_]', '', table_name.lower())  
-    
-    if from_ms and to_ms:  
-        from_time = datetime.fromtimestamp(from_ms / 1000, tz=timezone.utc)  
-        to_time = datetime.fromtimestamp(to_ms / 1000, tz=timezone.utc)  
-    else:  
-        to_time = datetime.now(timezone.utc)  
-        from_time = to_time - timedelta(hours=24)  
-    
-    async with pool.acquire() as conn:  
-        try:
-            exists = await conn.fetchval("""  
-                SELECT COUNT(*) FROM tables WHERE table_name = $1  
-            """, safe_table_name)  
-            
-            if exists == 0:  
-                raise HTTPException(status_code=404, detail=f"Table '{safe_table_name}' not found")  
-            
-            # Check which column exists
-            columns = await conn.fetch(f"""  
-                SELECT "column"   
-                FROM table_columns('{safe_table_name}')  
-            """)  
-            column_names = [row['column'] for row in columns]  
-            value_column = 'value' if 'value' in column_names else 'status'
-            
-            # Build query  
-            query = f"""  
-                SELECT timestamp, {value_column}, node_name, device_name  
-                FROM {safe_table_name}  
-                WHERE timestamp >= $1  
-                AND timestamp <= $2  
-            """  
-            params = [from_time, to_time]  
-            
-            if node_name:  
-                query += f" AND node_name = ${len(params) + 1}"  
-                params.append(node_name)  
-            if device_name:  
-                query += f" AND device_name = ${len(params) + 1}"  
-                params.append(device_name)  
-            
-            query += f" ORDER BY timestamp DESC LIMIT {limit}"  
-            
-            rows = await conn.fetch(query, *params)  
-            
-            # Return as table format for Grafana
-            result = {
-                "columns": [
-                    {"text": "Time", "type": "time"},
-                    {"text": "Node", "type": "string"},
-                    {"text": "Device", "type": "string"},
-                    {"text": "Value", "type": "string"}
-                ],
-                "rows": []
-            }
-            
-            for row in rows:
-                result["rows"].append([
-                    int(row['timestamp'].timestamp() * 1000),
-                    row['node_name'],
-                    row['device_name'],
-                    str(row[value_column])
-                ])
-            
-            return result
-            
-        except HTTPException:
-            raise
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Query failed: {str(e)}")
-
-@app.get("/grafana/current/{table_name}")  
-async def grafana_current_value(table_name: str):  
-    """
-    Get the latest value from a specific table
-    Perfect for stat/gauge panels
-    """  
-    safe_table_name = re.sub(r'[^a-z0-9_]', '', table_name.lower())  
-    
-    async with pool.acquire() as conn:  
-        try:
-            exists = await conn.fetchval("""  
-                SELECT COUNT(*) FROM tables WHERE table_name = $1  
-            """, safe_table_name)  
-            
-            if exists == 0:  
-                raise HTTPException(status_code=404, detail=f"Table '{safe_table_name}' not found")  
-            
-            # Check which column exists
-            columns = await conn.fetch(f"""  
-                SELECT "column"   
-                FROM table_columns('{safe_table_name}')  
-            """)  
-            column_names = [row['column'] for row in columns]  
-            value_column = 'value' if 'value' in column_names else 'status'  
-            
-            # Get latest value  
-            row = await conn.fetchrow(f"""  
-                SELECT timestamp, {value_column}, node_name, device_name  
-                FROM {safe_table_name}  
-                ORDER BY timestamp DESC  
-                LIMIT 1  
-            """)  
-            
-            if not row:  
-                return {"value": None}  
-            
-            # Try to convert to float for numeric columns
-            try:  
-                value = float(row[value_column])  
-            except (ValueError, TypeError):  
-                value = str(row[value_column])
-            
-            return {  
-                "value": value,  
-                "timestamp": int(row['timestamp'].timestamp() * 1000),  
-                "node_name": row['node_name'],  
-                "device_name": row['device_name']  
-            }
-            
-        except HTTPException:
-            raise
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Query failed: {str(e)}")
-
-@app.get("/grafana/table/all_latest")  
-async def grafana_all_latest_values(limit: int = 100):  
-    """
-    Get latest values from ALL tables
-    Good for overview table
-    """  
-    async with pool.acquire() as conn:  
-        tables = await conn.fetch("""  
-            SELECT table_name   
-            FROM tables   
-            WHERE table_name NOT IN ('sys.column_versions_purge_log', 'telemetry', 'telemetry_config')  
-            ORDER BY table_name  
-        """)  
-        
-        all_data = []  
-        
-        for table in tables:  
-            table_name = table['table_name']
-            try:  
-                # Check which column exists
-                columns = await conn.fetch(f"""  
-                    SELECT "column"   
-                    FROM table_columns('{table_name}')  
-                """)  
-                column_names = [row['column'] for row in columns]  
-                value_column = 'value' if 'value' in column_names else 'status'  
-                
-                # Get latest value  
-                row = await conn.fetchrow(f"""  
-                    SELECT timestamp, {value_column}, node_name, device_name  
-                    FROM {table_name}  
-                    ORDER BY timestamp DESC  
-                    LIMIT 1  
-                """)  
-                
-                if row:  
-                    all_data.append({  
-                        "metric": table_name,  
-                        "value": row[value_column],  
-                        "node": row['node_name'],  
-                        "device": row['device_name'],  
-                        "timestamp": row['timestamp'].isoformat()  
-                    })  
-            except Exception as e:  
-                print(f"Error reading table {table_name}: {e}")  
-                continue  
-        
-        return all_data[:limit]  
-
-@app.get("/grafana/stats")  
-async def grafana_system_stats():  
-    """
-    System statistics for stat panels  
-    """  
-    async with pool.acquire() as conn:  
-        # Count tables (metrics)  
-        tables = await conn.fetch("""  
-            SELECT COUNT(*) as count  
-            FROM tables   
-            WHERE table_name NOT IN ('sys.column_versions_purge_log', 'telemetry', 'telemetry_config')  
-        """)  
-        
-        # Get unique nodes  
-        all_tables = await conn.fetch("""  
-            SELECT table_name   
-            FROM tables   
-            WHERE table_name NOT IN ('sys.column_versions_purge_log', 'telemetry', 'telemetry_config')  
-        """)  
-        
-        all_nodes = set()  
-        all_devices = set()  
-        total_datapoints = 0  
-        
-        for table in all_tables:  
-            table_name = table['table_name']
-            try:  
-                nodes = await conn.fetch(f"SELECT DISTINCT node_name FROM {table_name}")  
-                all_nodes.update([row['node_name'] for row in nodes])  
-                
-                devices = await conn.fetch(f"SELECT DISTINCT device_name FROM {table_name}")  
-                all_devices.update([row['device_name'] for row in devices])  
-                
-                count = await conn.fetchval(f"""  
-                    SELECT COUNT(*)   
-                    FROM {table_name}  
-                    WHERE timestamp >= dateadd('h', -1, now())  
-                """)  
-                total_datapoints += count or 0  
-            except:  
-                continue  
-        
-        return {  
-            "total_metrics": tables[0]['count'],  
-            "active_nodes": len(all_nodes),  
-            "active_devices": len(all_devices),  
-            "datapoints_last_hour": total_datapoints  
-        }
-
-@app.get("/grafana/timeseries_rows/{table_name}")
-async def grafana_timeseries_rows(
-    table_name: str,
-    node_name: Optional[str] = None,
-    device_name: Optional[str] = None,
-    from_ms: Optional[int] = Query(None, alias="from"),
-    to_ms: Optional[int] = Query(None, alias="to"),
-    limit: int = 5000
+@app.get("/logs/container/{container_name}")
+async def get_container_logs(
+    container_name: str,
+    lines: int = 100,
+    since: Optional[str] = None,  # Format: "10m", "1h", "2024-01-01"
+    follow: bool = False
 ):
-    """Return QuestDB timeseries som simple JSON-rows med `time`-felt i ms (perfekt til Grafana)"""
-
-    safe_table = re.sub(r"[^a-z0-9_]", "", table_name.lower())
-
-    # Default tidsrange = sidste 24 timer hvis Grafana ikke sender from/to
-    if from_ms and to_ms:
-        t_from = datetime.fromtimestamp(from_ms / 1000, tz=timezone.utc)
-        t_to = datetime.fromtimestamp(to_ms / 1000, tz=timezone.utc)
-    else:
-        t_to = datetime.now(timezone.utc)
-        t_from = t_to - timedelta(hours=24)
-
-    async with pool.acquire() as conn:
-        try:
-            exists = await conn.fetchval(
-                "SELECT COUNT(*) FROM tables WHERE table_name = $1", safe_table
-            )
-            if not exists:
-                raise HTTPException(404, f"Table '{safe_table}' not found")
-
-            # Find kolonner i tabellen så vi ved om den hedder `value` eller `status`
-            cols = await conn.fetch(f'SELECT "column" FROM table_columns(\'{safe_table}\')')
-            names = [c["column"] for c in cols]
-
-            if "value" in names:
-                vcol = "value"
-                numeric = True
-            elif "status" in names:
-                vcol = "status"
-                numeric = False
-            else:
-                raise HTTPException(400, f"Table '{safe_table}' har ingen value/status kolonne")
-
-            # Query data
-            q = f"""
-                SELECT timestamp, {vcol} AS v, node_name, device_name
-                FROM {safe_table}
-                WHERE timestamp >= $1 AND timestamp <= $2
-                ORDER BY timestamp DESC
-                LIMIT {limit}
-            """
-            rows = await conn.fetch(q, t_from, t_to)
-            if not rows:
-                return []
-
-            out = []
-            for r in rows:
-                ts_ms = int(r["timestamp"].timestamp() * 1000)
-                val = r["v"]
-                # Hvis numeric kolonne, forsøger vi at returnere float
-                if numeric:
-                    try:
-                        val = float(val)
-                    except:
-                        val = None
-                else:
-                    val = str(val)
-
-                out.append({
-                    "time": ts_ms,
-                    "value": val,
-                    "node_name": r["node_name"],
-                    "device_name": r["device_name"]
+    """
+    Get logs from a specific container
+    
+    Parameters:
+    - container_name: Name of the container
+    - lines: Number of lines to return (default 100)
+    - since: Show logs since timestamp (e.g., "10m", "1h", "2024-01-01")
+    - follow: Stream logs (not recommended for API)
+    """
+    try:
+        cmd = ["docker", "logs", container_name, "--tail", str(lines)]
+        
+        if since:
+            cmd.extend(["--since", since])
+        
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
+        
+        # Kombiner stdout og stderr
+        logs = result.stdout + result.stderr
+        
+        # Parse logs til struktureret format
+        log_lines = []
+        for line in logs.split('\n'):
+            if line.strip():
+                log_lines.append({
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "container": container_name,
+                    "message": line
                 })
+        
+        return {
+            "container": container_name,
+            "total_lines": len(log_lines),
+            "logs": log_lines
+        }
+        
+    except subprocess.TimeoutExpired:
+        raise HTTPException(status_code=504, detail="Log retrieval timed out")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
-            return out
 
-        except HTTPException:
-            raise
-        except Exception as e:
-            raise HTTPException(500, str(e))
+@app.get("/logs/search")
+async def search_logs(
+    query: str,
+    containers: Optional[str] = None,  # Comma-separated list
+    lines: int = 100
+):
+    """
+    Search logs across containers
+    
+    Parameters:
+    - query: Search term
+    - containers: Comma-separated list of container names (default: all)
+    - lines: Number of lines to check per container
+    """
+    try:
+        # Get list of containers
+        if containers:
+            container_list = [c.strip() for c in containers.split(',')]
+        else:
+            result = subprocess.run(
+                ["docker", "ps", "--format", "{{.Names}}"],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            container_list = [name.strip() for name in result.stdout.split('\n') if name.strip()]
+        
+        matches = []
+        
+        for container in container_list:
+            try:
+                result = subprocess.run(
+                    ["docker", "logs", container, "--tail", str(lines)],
+                    capture_output=True,
+                    text=True,
+                    timeout=10
+                )
+                
+                logs = result.stdout + result.stderr
+                
+                for i, line in enumerate(logs.split('\n')):
+                    if query.lower() in line.lower():
+                        matches.append({
+                            "container": container,
+                            "line_number": i,
+                            "message": line,
+                            "timestamp": datetime.utcnow().isoformat()
+                        })
+            except:
+                continue
+        
+        return {
+            "query": query,
+            "total_matches": len(matches),
+            "matches": matches
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/logs/tail/{container_name}")
+async def tail_container_logs(
+    container_name: str,
+    lines: int = 50
+):
+    """
+    Get latest logs from container (for live monitoring)
+    Returns simplified format for Grafana
+    """
+    try:
+        result = subprocess.run(
+            ["docker", "logs", container_name, "--tail", str(lines), "--timestamps"],
+            capture_output=True,
+            text=True,
+            timeout=10
+        )
+        
+        logs = result.stdout + result.stderr
+        
+        # Format for Grafana Table
+        log_entries = []
+        for line in logs.split('\n'):
+            if line.strip():
+                # Docker timestamp format: 2024-01-01T12:00:00.000000000Z
+                parts = line.split(' ', 1)
+                if len(parts) == 2:
+                    timestamp_str, message = parts
+                    try:
+                        # Parse Docker timestamp
+                        ts = datetime.fromisoformat(timestamp_str.replace('Z', '+00:00'))
+                        log_entries.append({
+                            "time": int(ts.timestamp() * 1000),
+                            "container": container_name,
+                            "message": message
+                        })
+                    except:
+                        log_entries.append({
+                            "time": int(datetime.utcnow().timestamp() * 1000),
+                            "container": container_name,
+                            "message": line
+                        })
+        
+        return log_entries
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

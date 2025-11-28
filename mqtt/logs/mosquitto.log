@@ -1,145 +1,40 @@
-1764259789: mosquitto version 2.0.22 terminating
-1764259789: Saving in-memory database to /mosquitto/data//mosquitto.db.
-1764260254: mosquitto version 2.0.22 starting
-1764260254: Config loaded from /mosquitto/config/mosquitto.conf.
-1764260254: Warning: File mosquitto/config/pwfile.txt has world readable permissions. Future versions will refuse to load this file.
+1764326534: mosquitto version 2.0.22 terminating
+1764326534: Saving in-memory database to /mosquitto/data//mosquitto.db.
+1764326741: mosquitto version 2.0.22 starting
+1764326741: Config loaded from /mosquitto/config/mosquitto.conf.
+1764326741: Warning: File mosquitto/config/pwfile.txt has world readable permissions. Future versions will refuse to load this file.
 To fix this, use `chmod 0700 mosquitto/config/pwfile.txt`.
-1764260254: Warning: File mosquitto/config/aclfile has world readable permissions. Future versions will refuse to load this file.
+1764326741: Warning: File mosquitto/config/aclfile has world readable permissions. Future versions will refuse to load this file.
 To fix this, use `chmod 0700 mosquitto/config/aclfile`.
-1764260254: Opening ipv4 listen socket on port 1883.
-1764260254: mosquitto version 2.0.22 running
-1764260316: New connection from 172.22.0.6:42156 on port 1883.
-1764260316: New client connected from 172.22.0.6:42156 as Subscriber (p2, c1, k60, u'OlimexSubscribe').
-1764260316: No will message specified.
-1764260316: Sending CONNACK to Subscriber (0, 0)
-1764260316: Received SUBSCRIBE from Subscriber
-1764260316: 	spBv1.0/UCL-SEE-A/NBIRTH/TLab (QoS 0)
-1764260316: Subscriber 0 spBv1.0/UCL-SEE-A/NBIRTH/TLab
-1764260316: Sending SUBACK to Subscriber
-1764260316: Received SUBSCRIBE from Subscriber
-1764260316: 	spBv1.0/UCL-SEE-A/DDATA/TLab/VentSensor1 (QoS 0)
-1764260316: Subscriber 0 spBv1.0/UCL-SEE-A/DDATA/TLab/VentSensor1
-1764260316: Sending SUBACK to Subscriber
-1764260316: Received SUBSCRIBE from Subscriber
-1764260316: 	spBv1.0/UCL-SEE-A/NDEATH/TLab (QoS 0)
-1764260316: Subscriber 0 spBv1.0/UCL-SEE-A/NDEATH/TLab
-1764260316: Sending SUBACK to Subscriber
-1764260316: Sending PUBLISH to Subscriber (d0, q0, r1, m0, 'spBv1.0/UCL-SEE-A/NDEATH/TLab', ... (37 bytes))
-1764260316: Received SUBSCRIBE from Subscriber
-1764260316: 	spBv1.0/+/NDATA/+ (QoS 0)
-1764260316: Subscriber 0 spBv1.0/+/NDATA/+
-1764260316: Sending SUBACK to Subscriber
-1764260316: Received SUBSCRIBE from Subscriber
-1764260316: 	spBv1.0/+/NCMD/+ (QoS 0)
-1764260316: Subscriber 0 spBv1.0/+/NCMD/+
-1764260316: Sending SUBACK to Subscriber
-1764260316: Received SUBSCRIBE from Subscriber
-1764260316: 	spBv1.0/+/DCMD/+/+ (QoS 0)
-1764260316: Subscriber 0 spBv1.0/+/DCMD/+/+
-1764260316: Sending SUBACK to Subscriber
-1764260376: Received PINGREQ from Subscriber
-1764260376: Sending PINGRESP to Subscriber
-1764260437: Received PINGREQ from Subscriber
-1764260437: Sending PINGRESP to Subscriber
-1764260497: Received PINGREQ from Subscriber
-1764260497: Sending PINGRESP to Subscriber
-1764260558: Received PINGREQ from Subscriber
-1764260558: Sending PINGRESP to Subscriber
-1764260619: Received PINGREQ from Subscriber
-1764260619: Sending PINGRESP to Subscriber
-1764260679: Received PINGREQ from Subscriber
-1764260679: Sending PINGRESP to Subscriber
-1764260740: Received PINGREQ from Subscriber
-1764260740: Sending PINGRESP to Subscriber
-1764260800: Received PINGREQ from Subscriber
-1764260800: Sending PINGRESP to Subscriber
-1764260861: Received PINGREQ from Subscriber
-1764260861: Sending PINGRESP to Subscriber
-1764260921: Received PINGREQ from Subscriber
-1764260921: Sending PINGRESP to Subscriber
-1764260982: Received PINGREQ from Subscriber
-1764260982: Sending PINGRESP to Subscriber
-1764261042: Received PINGREQ from Subscriber
-1764261042: Sending PINGRESP to Subscriber
-1764261103: Received PINGREQ from Subscriber
-1764261103: Sending PINGRESP to Subscriber
-1764261164: Received PINGREQ from Subscriber
-1764261164: Sending PINGRESP to Subscriber
-1764261224: Received PINGREQ from Subscriber
-1764261224: Sending PINGRESP to Subscriber
-1764261246: New connection from 172.22.0.1:44080 on port 1883.
-1764261246: Sending CONNACK to Publisher (0, 5)
-1764261246: Client Publisher disconnected, not authorised.
-1764261285: Received PINGREQ from Subscriber
-1764261285: Sending PINGRESP to Subscriber
-1764261345: Received PINGREQ from Subscriber
-1764261345: Sending PINGRESP to Subscriber
-1764261406: Received PINGREQ from Subscriber
-1764261406: Sending PINGRESP to Subscriber
-1764261466: New connection from 172.22.0.1:44518 on port 1883.
-1764261466: Received PINGREQ from Subscriber
-1764261466: Sending PINGRESP to Subscriber
-1764261466: New client connected from 172.22.0.1:44518 as Publisher (p2, c1, k60, u'OlimexPublish').
-1764261466: No will message specified.
-1764261466: Sending CONNACK to Publisher (0, 0)
-1764261466: Denied PUBLISH from Publisher (d0, q0, r0, m0, 'PublishTest', ... (12 bytes))
-1764261466: Received DISCONNECT from Publisher
-1764261466: Client Publisher disconnected.
-1764261527: Received PINGREQ from Subscriber
-1764261527: Sending PINGRESP to Subscriber
-1764261587: Received PINGREQ from Subscriber
-1764261587: Sending PINGRESP to Subscriber
-1764261648: Received PINGREQ from Subscriber
-1764261648: Sending PINGRESP to Subscriber
-1764261709: Received PINGREQ from Subscriber
-1764261709: Sending PINGRESP to Subscriber
-1764261753: New connection from 172.22.0.1:49512 on port 1883.
-1764261753: New client connected from 172.22.0.1:49512 as Publisher (p2, c1, k60, u'OlimexPublish').
-1764261753: No will message specified.
-1764261753: Sending CONNACK to Publisher (0, 0)
-1764261753: Denied PUBLISH from Publisher (d0, q0, r0, m0, 'PublishTest', ... (12 bytes))
-1764261753: Received DISCONNECT from Publisher
-1764261753: Client Publisher disconnected.
-1764261769: Received PINGREQ from Subscriber
-1764261769: Sending PINGRESP to Subscriber
-1764261830: Received PINGREQ from Subscriber
-1764261830: Sending PINGRESP to Subscriber
-1764261890: Received PINGREQ from Subscriber
-1764261890: Sending PINGRESP to Subscriber
-1764261951: Received PINGREQ from Subscriber
-1764261951: Sending PINGRESP to Subscriber
-1764262011: Received PINGREQ from Subscriber
-1764262011: Sending PINGRESP to Subscriber
-1764262047: New connection from 172.22.0.1:44350 on port 1883.
-1764262047: New client connected from 172.22.0.1:44350 as Publisher (p2, c1, k60, u'OlimexPublish').
-1764262047: No will message specified.
-1764262047: Sending CONNACK to Publisher (0, 0)
-1764262047: Denied PUBLISH from Publisher (d0, q0, r0, m0, 'PublishTest', ... (12 bytes))
-1764262047: Received DISCONNECT from Publisher
-1764262047: Client Publisher disconnected.
-1764262054: Saving in-memory database to /mosquitto/data//mosquitto.db.
-1764262072: Received PINGREQ from Subscriber
-1764262072: Sending PINGRESP to Subscriber
-1764262132: Received PINGREQ from Subscriber
-1764262132: Sending PINGRESP to Subscriber
-1764262169: New connection from 172.22.0.1:52702 on port 1883.
-1764262169: New client connected from 172.22.0.1:52702 as Publisher (p2, c1, k60, u'OlimexPublish').
-1764262169: No will message specified.
-1764262169: Sending CONNACK to Publisher (0, 0)
-1764262169: Denied PUBLISH from Publisher (d0, q0, r0, m0, 'PublishTest', ... (12 bytes))
-1764262169: Received DISCONNECT from Publisher
-1764262169: Client Publisher disconnected.
-1764262193: Received PINGREQ from Subscriber
-1764262193: Sending PINGRESP to Subscriber
-1764262254: Received PINGREQ from Subscriber
-1764262254: Sending PINGRESP to Subscriber
-1764262314: Received PINGREQ from Subscriber
-1764262314: Sending PINGRESP to Subscriber
-1764262375: Received PINGREQ from Subscriber
-1764262375: Sending PINGRESP to Subscriber
-1764262435: Received PINGREQ from Subscriber
-1764262435: Sending PINGRESP to Subscriber
-1764262496: Received PINGREQ from Subscriber
-1764262496: Sending PINGRESP to Subscriber
-1764262556: Received PINGREQ from Subscriber
-1764262556: Sending PINGRESP to Subscriber
+1764326741: Opening ipv4 listen socket on port 1883.
+1764326741: mosquitto version 2.0.22 running
+1764326752: New connection from 172.18.0.8:59230 on port 1883.
+1764326753: New client connected from 172.18.0.8:59230 as Subscriber (p2, c1, k60, u'OlimexSubscribe').
+1764326753: No will message specified.
+1764326753: Sending CONNACK to Subscriber (0, 0)
+1764326753: Received SUBSCRIBE from Subscriber
+1764326753: 	spBv1.0/UCL-SEE-A/NBIRTH/TLab (QoS 0)
+1764326753: Subscriber 0 spBv1.0/UCL-SEE-A/NBIRTH/TLab
+1764326753: Sending SUBACK to Subscriber
+1764326753: Received SUBSCRIBE from Subscriber
+1764326753: 	spBv1.0/UCL-SEE-A/DDATA/TLab/VentSensor1 (QoS 0)
+1764326753: Subscriber 0 spBv1.0/UCL-SEE-A/DDATA/TLab/VentSensor1
+1764326753: Sending SUBACK to Subscriber
+1764326753: Received SUBSCRIBE from Subscriber
+1764326753: 	spBv1.0/UCL-SEE-A/NDEATH/TLab (QoS 0)
+1764326753: Subscriber 0 spBv1.0/UCL-SEE-A/NDEATH/TLab
+1764326753: Sending SUBACK to Subscriber
+1764326753: Received SUBSCRIBE from Subscriber
+1764326753: 	spBv1.0/+/NDATA/+ (QoS 0)
+1764326753: Subscriber 0 spBv1.0/+/NDATA/+
+1764326753: Sending SUBACK to Subscriber
+1764326753: Received SUBSCRIBE from Subscriber
+1764326753: 	spBv1.0/+/NCMD/+ (QoS 0)
+1764326753: Subscriber 0 spBv1.0/+/NCMD/+
+1764326753: Sending SUBACK to Subscriber
+1764326753: Received SUBSCRIBE from Subscriber
+1764326753: 	spBv1.0/+/DCMD/+/+ (QoS 0)
+1764326753: Subscriber 0 spBv1.0/+/DCMD/+/+
+1764326753: Sending SUBACK to Subscriber
+1764326813: Received PINGREQ from Subscriber
+1764326813: Sending PINGRESP to Subscriber
