@@ -172,9 +172,8 @@ bool readAlarmStatus() {
 void sendNBIRTH() {
   JsonDocument doc;
   time_t nowUTC = time(NULL);
-  time_t nowLocal = nowUTC + gmtOffset_sec + daylightOffset_sec;
 
-  doc["timestamp"] = nowLocal;
+  doc["timestamp"] = nowUTC;
   doc["seq"] = getNextSequence();
 
   JsonArray metrics = doc["metrics"].to<JsonArray>();
@@ -182,7 +181,7 @@ void sendNBIRTH() {
   // bdSeq
   JsonObject m0 = metrics.add<JsonObject>();
   m0["name"] = "bdSeq";
-  m0["timestamp"] = nowLocal;
+  m0["timestamp"] = nowUTC;
   m0["dataType"] = "UInt64";
   m0["value"] = bdSeq;
 
@@ -197,7 +196,7 @@ void sendNBIRTH() {
   for (int i = 0; i < 5; i++) {
     JsonObject m = metrics.add<JsonObject>();
     m["name"] = ncNames[i];
-    m["timestamp"] = nowLocal;
+    m["timestamp"] = nowUTC;
     m["dataType"] = "Boolean";
     m["value"] = false;
   }
@@ -205,14 +204,14 @@ void sendNBIRTH() {
   // Hardware
   JsonObject m6 = metrics.add<JsonObject>();
   m6["name"] = "Properties/Hardware";
-  m6["timestamp"] = nowLocal;
+  m6["timestamp"] = nowUTC;
   m6["dataType"] = "String";
   m6["value"] = "ESP32-POE";
 
   // Run Mode (event)
   JsonObject m7 = metrics.add<JsonObject>();
   m7["name"] = "Inputs/Run_Mode";
-  m7["timestamp"] = nowLocal;
+  m7["timestamp"] = nowUTC;
   m7["dataType"] = "String";
   m7["value"] = getRunModeText(runMode);
 
@@ -232,7 +231,7 @@ void sendNBIRTH() {
   for (int i = 0; i < 3; i++) {
     JsonObject m = metrics.add<JsonObject>();
     m["name"] = names[i];
-    m["timestamp"] = nowLocal;
+    m["timestamp"] = nowUTC;
     m["dataType"] = types[i];
 
     if (i == 0) m["value"] = indoorTemp;
@@ -249,16 +248,15 @@ void sendNBIRTH() {
 void sendDDATA_RunMode() {
   JsonDocument doc;
   time_t nowUTC = time(NULL);
-  time_t nowLocal = nowUTC + gmtOffset_sec + daylightOffset_sec;
 
-  doc["timestamp"] = nowLocal;
+  doc["timestamp"] = nowUTC;
   doc["seq"] = getNextSequence();
 
   JsonArray metrics = doc["metrics"].to<JsonArray>();
   JsonObject m = metrics.add<JsonObject>();
 
   m["name"] = "Inputs/Run_Mode";
-  m["timestamp"] = nowLocal;
+  m["timestamp"] = nowUTC;
   m["dataType"] = "String";
   m["value"] = getRunModeText(runMode);
 
@@ -270,10 +268,9 @@ void sendDDATA_RunMode() {
 // ---------------- SEND PERIODIC ----------------
 void sendDDATA_Periodic() {
     JsonDocument doc;
-  time_t nowUTC = time(NULL);
-  time_t nowLocal = nowUTC + gmtOffset_sec + daylightOffset_sec;
+    time_t nowUTC = time(NULL);
 
-    doc["timestamp"] = nowLocal;
+    doc["timestamp"] = nowUTC;
     doc["seq"] = getNextSequence();
 
     JsonArray metrics = doc["metrics"].to<JsonArray>();
@@ -281,21 +278,21 @@ void sendDDATA_Periodic() {
     // Indoor temperature
     JsonObject m1 = metrics.add<JsonObject>();
     m1["name"] = "Inputs/Indoor_temperature";
-    m1["timestamp"] = nowLocal;
+    m1["timestamp"] = nowUTC;
     m1["dataType"] = "Float";
     m1["value"] = indoorTemp;
 
     // Outdoor temperature
     JsonObject m2 = metrics.add<JsonObject>();
     m2["name"] = "Inputs/Outdoor_temperature";
-    m2["timestamp"] = nowLocal;
+    m2["timestamp"] = nowUTC;
     m2["dataType"] = "Float";
     m2["value"] = outdoorTemp;
 
     // Alarm status (fixed)
     JsonObject m3 = metrics.add<JsonObject>();
     m3["name"] = "Inputs/Alarm_status";
-    m3["timestamp"] = nowLocal;
+    m3["timestamp"] = nowUTC;
     m3["dataType"] = "String";
     m3["value"] = getAlarmText(alarmStatus);
 
@@ -466,12 +463,11 @@ void loop() {
 
     else if (wifiState == CONNECTED_STA) {
 
-      printLocalTime();
       readAlarmStatus();
       readRunMode();
       readIndoorTemp();
       readOutdoorTemp();
-      setAirUnitMode(0);
+      setAirUnitMode(1);
 
       if (runMode != lastRunMode) {
           lastRunMode = runMode;
