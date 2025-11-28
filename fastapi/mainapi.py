@@ -152,11 +152,13 @@ async def ingest_nbirth(group_id: str, node_id: str, data: SparkplugPayload):
     Håndterer NBIRTH beskeder - opretter kun tabeller, indsætter IKKE data
     Topic format: spBv1.0/{group_id}/NBIRTH/{node_id}
     """
-    # FIXED: Make timezone-aware (check if timestamp is in seconds or milliseconds)
-    if data.timestamp > 1e12:  # Likely milliseconds
-        ts_datetime = datetime.fromtimestamp(data.timestamp / 1000, tz=timezone.utc)
-    else:  # Likely seconds
-        ts_datetime = datetime.fromtimestamp(data.timestamp, tz=timezone.utc)
+    
+    # Convert Sparkplug timestamp → naive UTC datetime (QuestDB requires naive)
+    if data.timestamp > 1e12:  # milliseconds
+        ts_datetime = datetime.utcfromtimestamp(data.timestamp / 1000)
+    else:  # seconds
+        ts_datetime = datetime.utcfromtimestamp(data.timestamp)
+
     
     tables_created = 0
     
@@ -201,11 +203,11 @@ async def ingest_ddata(group_id: str, node_id: str, device_id: str, data: Sparkp
     Håndterer DDATA beskeder (device data)
     Topic format: spBv1.0/{group_id}/DDATA/{node_id}/{device_id}
     """
-    # FIXED: Make timezone-aware (check if timestamp is in seconds or milliseconds)
-    if data.timestamp > 1e12:  # Likely milliseconds
-        ts_datetime = datetime.fromtimestamp(data.timestamp / 1000, tz=timezone.utc)
-    else:  # Likely seconds
-        ts_datetime = datetime.fromtimestamp(data.timestamp, tz=timezone.utc)
+    # Convert Sparkplug timestamp → naive UTC datetime (QuestDB requires naive)
+    if data.timestamp > 1e12:  # milliseconds
+        ts_datetime = datetime.utcfromtimestamp(data.timestamp / 1000)
+    else:  # seconds
+        ts_datetime = datetime.utcfromtimestamp(data.timestamp)
     
     inserted_count = 0
     
